@@ -55,11 +55,8 @@ public class FetchCustomersUseCase {
                                     return new FetchCustomersViewState.ErrorFetchingCustomers
                                         (action, error.getThrowable()).setCachedCustomers(localCustomers);
                                 }
-                            },
-                            null, //SearchingCustomers 'loading' state can be ignored,
-                            null, // as well as the SuccessSearchingCustomers state and the
-                            null  // ErrorSearchingCustomers state as they belong to another domain.
-                    );
+                            }
+                        );
                 }
 
                 @Override
@@ -80,10 +77,7 @@ public class FetchCustomersUseCase {
                                     //In case of errors fetching local customers we rely entirely on the remote state.
                                     return remoteState;
                                 }
-                            },
-                            null, //SearchingCustomers 'loading' state can be ignored,
-                            null, // as well as the SuccessSearchingCustomers state and the
-                            null  // ErrorSearchingCustomers state as they belong to another domain.
+                            }
                         );
                 }
             })

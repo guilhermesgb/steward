@@ -3,40 +3,33 @@ package com.github.guilhermesgb.steward.mvi.customer.model;
 import com.github.guilhermesgb.steward.mvi.customer.intent.FetchCustomersAction;
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
 import com.github.guilhermesgb.steward.utils.ViewStateOption;
-import com.pacoworks.rxsealedunions2.Union7;
+import com.pacoworks.rxsealedunions2.Union4;
 
 import java.util.List;
 
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 
-public interface FetchCustomersViewState extends Union7<FetchCustomersViewState.Initial,
+public interface FetchCustomersViewState extends Union4<FetchCustomersViewState.Initial,
         FetchCustomersViewState.FetchingCustomers, FetchCustomersViewState.SuccessFetchingCustomers,
-        FetchCustomersViewState.ErrorFetchingCustomers, FetchCustomersViewState.SearchingCustomers,
-        FetchCustomersViewState.SuccessSearchingCustomers, FetchCustomersViewState.ErrorSearchingCustomers> {
+        FetchCustomersViewState.ErrorFetchingCustomers> {
 
     final class Initial extends ViewStateOption implements FetchCustomersViewState {
 
         @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer, this);
+        public void continued(Consumer<Initial> initial,
+                              Consumer<FetchingCustomers> fetchingCustomers,
+                              Consumer<SuccessFetchingCustomers> successFetchingCustomers,
+                              Consumer<ErrorFetchingCustomers> errorFetchingCustomers) {
+            doAccept(initial, this);
         }
 
         @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function, this);
+        public <R> R join(Function<Initial, R> initial,
+                          Function<FetchingCustomers, R> fetchingCustomers,
+                          Function<SuccessFetchingCustomers, R> successFetchingCustomers,
+                          Function<ErrorFetchingCustomers, R> errorFetchingCustomers) {
+            return doApply(initial, this);
         }
 
         @Override
@@ -59,19 +52,19 @@ public interface FetchCustomersViewState extends Union7<FetchCustomersViewState.
         }
 
         @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer1, this);
+        public void continued(Consumer<Initial> initial,
+                              Consumer<FetchingCustomers> fetchingCustomers,
+                              Consumer<SuccessFetchingCustomers> successFetchingCustomers,
+                              Consumer<ErrorFetchingCustomers> errorFetchingCustomers) {
+            doAccept(fetchingCustomers, this);
         }
 
         @Override
-        public <R> R join(Function<Initial, R> function, Function<FetchingCustomers, R> function1, Function<SuccessFetchingCustomers, R> function2, Function<ErrorFetchingCustomers, R> function3, Function<SearchingCustomers, R> function4, Function<SuccessSearchingCustomers, R> function5, Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function1, this);
+        public <R> R join(Function<Initial, R> initial,
+                          Function<FetchingCustomers, R> fetchingCustomers,
+                          Function<SuccessFetchingCustomers, R> successFetchingCustomers,
+                          Function<ErrorFetchingCustomers, R> errorFetchingCustomers) {
+            return doApply(fetchingCustomers, this);
         }
 
         @Override
@@ -100,25 +93,19 @@ public interface FetchCustomersViewState extends Union7<FetchCustomersViewState.
         }
 
         @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer2, this);
+        public void continued(Consumer<Initial> initial,
+                              Consumer<FetchingCustomers> fetchingCustomers,
+                              Consumer<SuccessFetchingCustomers> successFetchingCustomers,
+                              Consumer<ErrorFetchingCustomers> errorFetchingCustomers) {
+            doAccept(successFetchingCustomers, this);
         }
 
         @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function2, this);
+        public <R> R join(Function<Initial, R> initial,
+                          Function<FetchingCustomers, R> fetchingCustomers,
+                          Function<SuccessFetchingCustomers, R> successFetchingCustomers,
+                          Function<ErrorFetchingCustomers, R> errorFetchingCustomers) {
+            return doApply(successFetchingCustomers, this);
         }
 
         @Override
@@ -157,123 +144,24 @@ public interface FetchCustomersViewState extends Union7<FetchCustomersViewState.
         }
 
         @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer3, this);
+        public void continued(Consumer<Initial> initial,
+                              Consumer<FetchingCustomers> fetchingCustomers,
+                              Consumer<SuccessFetchingCustomers> successFetchingCustomers,
+                              Consumer<ErrorFetchingCustomers> errorFetchingCustomers) {
+            doAccept(errorFetchingCustomers, this);
         }
 
         @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function3, this);
+        public <R> R join(Function<Initial, R> initial,
+                          Function<FetchingCustomers, R> fetchingCustomers,
+                          Function<SuccessFetchingCustomers, R> successFetchingCustomers,
+                          Function<ErrorFetchingCustomers, R> errorFetchingCustomers) {
+            return doApply(errorFetchingCustomers, this);
         }
 
         @Override
         protected String getOptionName() {
             return "FetchCustomersViewState.ErrorFetchingCustomers";
-        }
-
-    }
-
-    final class SearchingCustomers extends ViewStateOption implements FetchCustomersViewState {
-
-        @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer4, this);
-        }
-
-        @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function4, this);
-        }
-
-        @Override
-        protected String getOptionName() {
-            return "FetchCustomersViewState.SearchingCustomers";
-        }
-
-    }
-
-    final class SuccessSearchingCustomers extends ViewStateOption implements FetchCustomersViewState {
-
-        @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer5, this);
-        }
-
-        @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function5, this);
-        }
-
-        @Override
-        protected String getOptionName() {
-            return "FetchCustomersViewState.SuccessSearchingCustomers";
-        }
-
-    }
-
-    final class ErrorSearchingCustomers extends ViewStateOption implements FetchCustomersViewState {
-
-        @Override
-        public void continued(Consumer<Initial> consumer,
-                              Consumer<FetchingCustomers> consumer1,
-                              Consumer<SuccessFetchingCustomers> consumer2,
-                              Consumer<ErrorFetchingCustomers> consumer3,
-                              Consumer<SearchingCustomers> consumer4,
-                              Consumer<SuccessSearchingCustomers> consumer5,
-                              Consumer<ErrorSearchingCustomers> consumer6) {
-            doAccept(consumer6, this);
-        }
-
-        @Override
-        public <R> R join(Function<Initial, R> function,
-                          Function<FetchingCustomers, R> function1,
-                          Function<SuccessFetchingCustomers, R> function2,
-                          Function<ErrorFetchingCustomers, R> function3,
-                          Function<SearchingCustomers, R> function4,
-                          Function<SuccessSearchingCustomers, R> function5,
-                          Function<ErrorSearchingCustomers, R> function6) {
-            return doApply(function6, this);
-        }
-
-        @Override
-        protected String getOptionName() {
-            return "FetchCustomersViewState.ErrorSearchingCustomers";
         }
 
     }
