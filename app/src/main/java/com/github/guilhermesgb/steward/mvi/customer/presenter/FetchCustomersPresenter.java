@@ -15,13 +15,15 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 
+import static com.github.guilhermesgb.steward.network.ApiResource.WILL_USE_REAL_API;
+
 public class FetchCustomersPresenter
         extends MviBasePresenter<FetchCustomersView, FetchCustomersViewState> {
 
     private final FetchCustomersUseCase fetchCustomersUseCase;
 
     public FetchCustomersPresenter(Context context) {
-        this.fetchCustomersUseCase = new FetchCustomersUseCase(context);
+        this.fetchCustomersUseCase = new FetchCustomersUseCase(WILL_USE_REAL_API, context);
     }
 
     @Override
@@ -47,12 +49,13 @@ public class FetchCustomersPresenter
         })
         .observeOn(AndroidSchedulers.mainThread());
 
-        subscribeViewState(fetchCustomers, new ViewStateConsumer<FetchCustomersView, FetchCustomersViewState>() {
-            @Override
-            public void accept(@NonNull FetchCustomersView view, @NonNull FetchCustomersViewState state) {
-                view.render(state);
-            }
-        });
+        subscribeViewState(fetchCustomers.startWith(new FetchCustomersViewState.Initial()),
+            new ViewStateConsumer<FetchCustomersView, FetchCustomersViewState>() {
+                @Override
+                public void accept(@NonNull FetchCustomersView view, @NonNull FetchCustomersViewState state) {
+                    view.render(state);
+                }
+            });
     }
 
 }

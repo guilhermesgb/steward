@@ -2,11 +2,10 @@ package com.github.guilhermesgb.steward.mvi.customer;
 
 import android.content.Context;
 
-import com.github.guilhermesgb.steward.database.DatabaseResource;
 import com.github.guilhermesgb.steward.mvi.customer.intent.FetchCustomersAction;
 import com.github.guilhermesgb.steward.mvi.customer.model.FetchCustomersViewState;
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
-import com.github.guilhermesgb.steward.network.ApiResource;
+import com.github.guilhermesgb.steward.utils.UseCase;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -17,22 +16,18 @@ import io.reactivex.ObservableSource;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 
-import static com.github.guilhermesgb.steward.network.ApiResource.WILL_USE_REAL_API;
+public class FetchCustomersUseCase extends UseCase {
 
-public class FetchCustomersUseCase {
-
-    private final Context context;
-
-    public FetchCustomersUseCase(Context context) {
-        this.context = context;
+    public FetchCustomersUseCase(String apiBaseUrl, Context context) {
+        super(apiBaseUrl, context);
     }
 
     public Observable<FetchCustomersViewState> doFetchCustomers(final FetchCustomersAction action) {
         Observable<FetchCustomersViewState> fetchRemoteCustomers = mapListOfCustomersToStates
-            (action, ApiResource.getInstance(WILL_USE_REAL_API).fetchCustomers().toObservable());
+            (action, getApi().fetchCustomers().toObservable());
 
         final Observable<FetchCustomersViewState> fetchLocalCustomers = mapListOfCustomersToStates
-            (action, DatabaseResource.getInstance(context).customerDao().findAll().toObservable());
+            (action, getDatabase().customerDao().findAll().toObservable());
 
         return Observable.combineLatest(fetchLocalCustomers, fetchRemoteCustomers.cache(),
             new BiFunction<FetchCustomersViewState, FetchCustomersViewState, FetchCustomersViewState>() {

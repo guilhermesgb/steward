@@ -2,12 +2,11 @@ package com.github.guilhermesgb.steward.mvi.table;
 
 import android.content.Context;
 
-import com.github.guilhermesgb.steward.database.DatabaseResource;
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.mvi.table.schema.Tables;
-import com.github.guilhermesgb.steward.network.ApiResource;
+import com.github.guilhermesgb.steward.utils.UseCase;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -18,19 +17,15 @@ import io.reactivex.ObservableSource;
 import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Function;
 
-import static com.github.guilhermesgb.steward.network.ApiResource.WILL_USE_REAL_API;
+public class FetchTablesUseCase extends UseCase {
 
-public class FetchTablesUseCase {
-
-    private final Context context;
-
-    public FetchTablesUseCase(Context context) {
-        this.context = context;
+    public FetchTablesUseCase(String apiBaseUrl, Context context) {
+        super(apiBaseUrl, context);
     }
 
     public Observable<FetchTablesViewState> doFetchTables(final FetchTablesAction action) {
         Observable<FetchTablesViewState> fetchRemoteTables = mapListOfTablesToStates
-            (action, ApiResource.getInstance(WILL_USE_REAL_API).fetchTables()
+            (action, getApi().fetchTables()
                 .map(new Function<Tables, List<Table>>() {
                     @Override
                     public List<Table> apply(Tables tables) {
@@ -39,7 +34,7 @@ public class FetchTablesUseCase {
                 }).toObservable());
 
         final Observable<FetchTablesViewState> fetchLocalTables = mapListOfTablesToStates
-            (action, DatabaseResource.getInstance(context).tableDao().findAll().toObservable());
+            (action, getDatabase().tableDao().findAll().toObservable());
 
         return Observable.combineLatest(fetchLocalTables, fetchRemoteTables.cache(),
             new BiFunction<FetchTablesViewState, FetchTablesViewState, FetchTablesViewState>() {
@@ -67,10 +62,15 @@ public class FetchTablesUseCase {
                                                 mergedTables.add(remoteTables.get(i));
                                             }
                                         }
-                                        return new FetchTablesViewState
+                                        success = new FetchTablesViewState
                                             .SuccessFetchingTables(action, mergedTables);
+                                    } else {
+                                        success = success.setTables(localTables);
                                     }
-                                    return success.setTables(localTables);
+                                    //Persisting merged state in the local database.
+                                    getDatabase().tableDao().deleteAll();
+                                    getDatabase().tableDao().insertAll(success.getTables());
+                                    return success;
                                 }
                             },
                             new Function<FetchTablesViewState.ErrorFetchingTables, FetchTablesViewState>() {
