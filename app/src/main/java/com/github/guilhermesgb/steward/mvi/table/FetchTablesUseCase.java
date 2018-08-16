@@ -44,15 +44,33 @@ public class FetchTablesUseCase {
         return Observable.combineLatest(fetchLocalTables, fetchRemoteTables.cache(),
             new BiFunction<FetchTablesViewState, FetchTablesViewState, FetchTablesViewState>() {
                 private FetchTablesViewState mergeLocalStateWithRemoteState(final List<Table> localTables,
-                                                                            FetchTablesViewState remoteState) {
+                                                                            final FetchTablesViewState remoteState) {
                     return remoteState.join(
                             null,  //Initial state can be safely disregarded here.
                             null, //Same goes for the FetchingTables 'loading' state...
                             new Function<FetchTablesViewState.SuccessFetchingTables, FetchTablesViewState>() {
                                 @Override
                                 public FetchTablesViewState apply(FetchTablesViewState.SuccessFetchingTables success) {
-                                    //In case we have remote tables, we discard local state in favor of remote state.
-                                    return success;
+                                    //In case we have remote tables, we merge the remote state with our local tables,
+                                    // prioritizing whatever happened locally since the server is not updated with
+                                    // our local work and we don't want to lose it.
+                                    //This merge process will be as follows: any new tables will be appended to the set,
+                                    // but if we are given less tables than what we currently have locally,
+                                    // we keep the local tables nonetheless.
+                                    List<Table> remoteTables = success.getTables();
+                                    if (remoteTables.size() > localTables.size()) {
+                                        List<Table> mergedTables = new LinkedList<>();
+                                        for (int i=0; i<remoteTables.size(); i++) {
+                                            if (i < localTables.size()) {
+                                                mergedTables.add(localTables.get(i));
+                                            } else {
+                                                mergedTables.add(remoteTables.get(i));
+                                            }
+                                        }
+                                        return new FetchTablesViewState
+                                            .SuccessFetchingTables(action, mergedTables);
+                                    }
+                                    return success.setTables(localTables);
                                 }
                             },
                             new Function<FetchTablesViewState.ErrorFetchingTables, FetchTablesViewState>() {

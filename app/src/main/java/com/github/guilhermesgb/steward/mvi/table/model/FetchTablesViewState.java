@@ -77,7 +77,7 @@ public interface FetchTablesViewState extends Union4<FetchTablesViewState.Initia
     final class SuccessFetchingTables extends ViewStateOption implements FetchTablesViewState {
 
         private final FetchTablesAction action;
-        private final List<Table> tables;
+        private List<Table> tables;
 
         public SuccessFetchingTables(FetchTablesAction action, List<Table> tables) {
             this.action = action;
@@ -90,6 +90,11 @@ public interface FetchTablesViewState extends Union4<FetchTablesViewState.Initia
 
         public List<Table> getTables() {
             return tables;
+        }
+
+        public SuccessFetchingTables setTables(List<Table> tables) {
+            this.tables = tables;
+            return this;
         }
 
         @Override
