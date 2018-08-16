@@ -1,6 +1,7 @@
 package com.github.guilhermesgb.steward.mvi.table.schema;
 
 import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.PrimaryKey;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -11,10 +12,10 @@ import java.io.Serializable;
 import static com.github.guilhermesgb.steward.utils.JsonUtils.getBoolean;
 import static com.github.guilhermesgb.steward.utils.JsonUtils.getOptionalInt;
 
-@Entity(tableName = "table")
+@Entity(tableName = "stand")
 public class Table implements Serializable, Parcelable {
 
-    private int number;
+    @PrimaryKey private int number;
     private boolean isAvailable;
 
     private Table(Parcel in) {
@@ -45,7 +46,7 @@ public class Table implements Serializable, Parcelable {
         dest.writeByte((byte) (isAvailable ? 1 : 0));
     }
 
-    private Table(int number, boolean isAvailable) {
+    public Table(int number, boolean isAvailable) {
         this.number = number;
         this.isAvailable = isAvailable;
     }
@@ -73,6 +74,11 @@ public class Table implements Serializable, Parcelable {
         json.addProperty("number", table.number);
         json.addProperty("isAvailable", table.isAvailable);
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return jsonizeFrom(this).toString();
     }
 
 }

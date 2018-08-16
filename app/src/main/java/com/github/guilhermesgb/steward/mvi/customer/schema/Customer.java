@@ -49,7 +49,7 @@ public class Customer implements Serializable, Parcelable {
         dest.writeString(lastName);
     }
 
-    private Customer(@NonNull String id, String firstName, String lastName) {
+    public Customer(@NonNull String id, String firstName, String lastName) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -85,6 +85,11 @@ public class Customer implements Serializable, Parcelable {
         json.addProperty("customerFirstName", customer.firstName);
         json.addProperty("customerLastName", customer.lastName);
         return json;
+    }
+
+    @Override
+    public String toString() {
+        return jsonizeFrom(this).toString();
     }
 
 }
