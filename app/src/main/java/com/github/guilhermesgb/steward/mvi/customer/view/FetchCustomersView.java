@@ -10,8 +10,6 @@ public interface FetchCustomersView extends MvpView {
 
     Observable<FetchCustomersAction> fetchCustomersIntent();
 
-    Observable<FetchCustomersAction> searchCustomersIntent();
-
     void render(FetchCustomersViewState state);
 
 }

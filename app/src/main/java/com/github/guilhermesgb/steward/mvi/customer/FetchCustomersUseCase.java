@@ -97,9 +97,9 @@ public class FetchCustomersUseCase {
                     operations.add(fetchRemoteCustomers);
                     return Observable.concatEager(operations)
                         .startWith(new FetchCustomersViewState.FetchingCustomers(action))
-                        .switchMap(new Function<FetchCustomersViewState, ObservableSource<? extends FetchCustomersViewState>>() {
+                        .switchMap(new Function<FetchCustomersViewState, ObservableSource<FetchCustomersViewState>>() {
                             @Override
-                            public ObservableSource<? extends FetchCustomersViewState> apply(FetchCustomersViewState state) {
+                            public ObservableSource<FetchCustomersViewState> apply(FetchCustomersViewState state) {
                                 if (!(state instanceof FetchCustomersViewState.ErrorFetchingCustomers)) {
                                     return Observable.just(state);
                                 }
