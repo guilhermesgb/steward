@@ -22,6 +22,8 @@ import static com.github.guilhermesgb.steward.utils.StringUtils.isEmpty;
 
 public class ApiResource {
 
+    public static final String WILL_USE_REAL_API = null; //For better code readability semantically-wise.
+
     private static final OkHttpClient.Builder client = new OkHttpClient.Builder();
     private static final HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
     static {

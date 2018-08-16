@@ -6,7 +6,9 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
+import com.github.guilhermesgb.steward.mvi.customer.schema.CustomerDao;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
+import com.github.guilhermesgb.steward.mvi.table.schema.TableDao;
 
 @Database(
     version = 1,
@@ -28,5 +30,9 @@ public abstract class DatabaseResource extends RoomDatabase {
         }
         return instance;
     }
+
+    public abstract CustomerDao customerDao();
+
+    public abstract TableDao tableDao();
 
 }
