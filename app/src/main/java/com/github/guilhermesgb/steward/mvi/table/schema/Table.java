@@ -8,6 +8,7 @@ import android.os.Parcelable;
 import com.google.gson.JsonObject;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import static com.github.guilhermesgb.steward.utils.JsonUtils.getBoolean;
 import static com.github.guilhermesgb.steward.utils.JsonUtils.getOptionalInt;
@@ -16,11 +17,11 @@ import static com.github.guilhermesgb.steward.utils.JsonUtils.getOptionalInt;
 public class Table implements Serializable, Parcelable {
 
     @PrimaryKey private int number;
-    private boolean isAvailable;
+    private boolean available;
 
     private Table(Parcel in) {
         number = in.readInt();
-        isAvailable = in.readByte() != 0;
+        available = in.readByte() != 0;
     }
 
     public static final Creator<Table> CREATOR = new Creator<Table>() {
@@ -43,12 +44,12 @@ public class Table implements Serializable, Parcelable {
     @Override
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(number);
-        dest.writeByte((byte) (isAvailable ? 1 : 0));
+        dest.writeByte((byte) (available ? 1 : 0));
     }
 
-    public Table(int number, boolean isAvailable) {
+    public Table(int number, boolean available) {
         this.number = number;
-        this.isAvailable = isAvailable;
+        this.available = available;
     }
 
     public int getNumber() {
@@ -56,13 +57,13 @@ public class Table implements Serializable, Parcelable {
     }
 
     public boolean isAvailable() {
-        return isAvailable;
+        return available;
     }
 
     public static Table dejsonizeFrom(JsonObject json) {
         return json == null ? null : new Table(
             getOptionalInt(json, "number"),
-            getBoolean(json, "isAvailable", false)
+            getBoolean(json, "available", false)
         );
     }
 
@@ -72,13 +73,28 @@ public class Table implements Serializable, Parcelable {
         }
         JsonObject json = new JsonObject();
         json.addProperty("number", table.number);
-        json.addProperty("isAvailable", table.isAvailable);
+        json.addProperty("available", table.available);
         return json;
     }
 
     @Override
     public String toString() {
         return jsonizeFrom(this).toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Table table = (Table) o;
+        return number == table.number &&
+                available == table.available;
+    }
+
+    @Override
+    public int hashCode() {
+        Object[] toHash = new Object[] { number, available };
+        return Arrays.hashCode(toHash);
     }
 
 }

@@ -4,7 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -40,7 +39,7 @@ public class Tables implements Serializable, Parcelable {
         dest.writeTypedList(tables);
     }
 
-    public Tables(List<Table> tables) {
+    private Tables(List<Table> tables) {
         this.tables = tables;
     }
 
@@ -54,16 +53,12 @@ public class Tables implements Serializable, Parcelable {
         }
         List<Table> tables = new LinkedList<>();
         for (int i=0; i<json.size(); i++) {
-            JsonObject mapped = new JsonObject();
-            mapped.addProperty("number", i);
-            mapped.addProperty("isAvailable",
-                json.get(i).getAsBoolean());
-            tables.add(Table.dejsonizeFrom(mapped));
+            tables.add(new Table(i, json.get(i).getAsBoolean()));
         }
         return new Tables(tables);
     }
 
-    public static JsonArray jsonizeFrom(Tables tables) {
+    private static JsonArray jsonizeFrom(Tables tables) {
         if (tables == null) {
             return null;
         }

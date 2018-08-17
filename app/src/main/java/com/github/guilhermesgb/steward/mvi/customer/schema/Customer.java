@@ -49,7 +49,7 @@ public class Customer implements Serializable, Parcelable {
         dest.writeString(lastName);
     }
 
-    public Customer(@NonNull String id, String firstName, String lastName) {
+    Customer(@NonNull String id, String firstName, String lastName) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
