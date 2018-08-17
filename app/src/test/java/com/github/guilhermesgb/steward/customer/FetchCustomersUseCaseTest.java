@@ -37,6 +37,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -357,8 +358,135 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
         });
     }
 
+    @Test
+    public void fetchCustomers_someLocalCustomers_errorFetchingRemoteCustomers_shouldPreserveLocalCustomers() throws Exception {
+        // ### SETUP PHASE ###
+
+        //Setting up mock server to return the error below.
+        List<MockResponse> expectedResponses = Collections.singletonList
+            (new MockResponse().setResponseCode(500));
+        configureMockWebServer(expectedResponses, new MockServerCallback() {
+            @Override
+            public void onMockServerConfigured(MockWebServer server, String baseUrl) throws Exception {
+                FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
+
+                CustomerDao customerDaoMock = mock(CustomerDao.class);
+                //Mocking database to return these three previously stored customers.
+                List<Customer> customersExpectedToHaveBeenStoredThen = new LinkedList<>();
+                customersExpectedToHaveBeenStoredThen.add(new Customer("0", "Marilyn", "The Woman"));
+                customersExpectedToHaveBeenStoredThen.add(new Customer("4", "Martin Luther", "King"));
+                customersExpectedToHaveBeenStoredThen.add(new Customer("5", "Nelson", "Mandela"));
+                when(customerDaoMock.findAll()).thenReturn
+                    (Single.just(customersExpectedToHaveBeenStoredThen));
+                //Turning database writes into no-ops.
+                doNothing().when(customerDaoMock).deleteAll();
+                doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
+                DatabaseResource databaseMock = mock(DatabaseResource.class);
+                when(databaseMock.customerDao()).thenReturn(customerDaoMock);
+                doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
+
+                // ### EXECUTION PHASE ###
+
+                final List<FetchCustomersViewState> states = new LinkedList<>();
+                new IterableUtils<FetchCustomersViewState>()
+                    .forEach(fetchCustomersUseCase.doFetchCustomers(new FetchCustomersAction()).blockingIterable(),
+                        new IterableUtils.IterableCallback<FetchCustomersViewState>() {
+                            @Override
+                            public void doForEach(FetchCustomersViewState state) {
+                                states.add(state);
+                            }
+                        }
+                    );
+
+                // ### VERIFICATION PHASE ###
+
+                assertThat(states, hasSize(4));
+                assertThat(states.get(0), instanceOf(FetchCustomersViewState.FetchingCustomers.class));
+                assertThat(states.get(1), instanceOf(FetchCustomersViewState.SuccessFetchingCustomers.class));
+                assertThat(states.get(2), instanceOf(FetchCustomersViewState.ErrorFetchingCustomers.class));
+                assertThat(states.get(3), instanceOf(FetchCustomersViewState.Initial.class));
+
+                FetchCustomersViewState.SuccessFetchingCustomers localSuccess
+                    = (FetchCustomersViewState.SuccessFetchingCustomers) states.get(1);
+                FetchCustomersViewState.ErrorFetchingCustomers remoteError
+                    = (FetchCustomersViewState.ErrorFetchingCustomers) states.get(2);
+                FetchCustomersViewState.Initial initialShownLater
+                    = (FetchCustomersViewState.Initial) states.get(3);
+
+                assertThat(localSuccess.getCustomers(), hasSize(3));
+                assertThat(localSuccess.getCustomers().get(0), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("0")),
+                    hasProperty("firstName", equalTo("Marilyn")),
+                    hasProperty("lastName", equalTo("The Woman"))
+                ));
+                assertThat(localSuccess.getCustomers().get(1), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("4")),
+                    hasProperty("firstName", equalTo("Martin Luther")),
+                    hasProperty("lastName", equalTo("King"))
+                ));
+                assertThat(localSuccess.getCustomers().get(2), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("5")),
+                    hasProperty("firstName", equalTo("Nelson")),
+                    hasProperty("lastName", equalTo("Mandela"))
+                ));
+
+                assertThat(remoteError.getCachedCustomers(), hasSize(3));
+                assertThat(remoteError.getCachedCustomers().get(0), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("0")),
+                    hasProperty("firstName", equalTo("Marilyn")),
+                    hasProperty("lastName", equalTo("The Woman"))
+                ));
+                assertThat(remoteError.getCachedCustomers().get(1), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("4")),
+                    hasProperty("firstName", equalTo("Martin Luther")),
+                    hasProperty("lastName", equalTo("King"))
+                ));
+                assertThat(remoteError.getCachedCustomers().get(2), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("5")),
+                    hasProperty("firstName", equalTo("Nelson")),
+                    hasProperty("lastName", equalTo("Mandela"))
+                ));
+
+                assertThat(initialShownLater.getCachedCustomers(), hasSize(3));
+                assertThat(initialShownLater.getCachedCustomers().get(0), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("0")),
+                    hasProperty("firstName", equalTo("Marilyn")),
+                    hasProperty("lastName", equalTo("The Woman"))
+                ));
+                assertThat(initialShownLater.getCachedCustomers().get(1), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("4")),
+                    hasProperty("firstName", equalTo("Martin Luther")),
+                    hasProperty("lastName", equalTo("King"))
+                ));
+                assertThat(initialShownLater.getCachedCustomers().get(2), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo("5")),
+                    hasProperty("firstName", equalTo("Nelson")),
+                    hasProperty("lastName", equalTo("Mandela"))
+                ));
+
+                //Verifying if test made expected API calls.
+                assertThat(server.getRequestCount(), is(1));
+                String expectedEndpoint = "/" + ApiEndpoints.class
+                    .getMethod("fetchCustomers").getAnnotation(GET.class).value();
+                RecordedRequest request = server.takeRequest();
+                assertThat(request.getPath(), is(expectedEndpoint));
+                server.shutdown();
+
+                //Verifying if test made expected database operations.
+                verify(customerDaoMock).findAll();
+                verify(customerDaoMock, times(0)).deleteAll();
+                verify(customerDaoMock, times(0))
+                    .insertAll(ArgumentMatchers.<Customer>anyList());
+            }
+        });
+    }
+
     private FetchCustomersUseCase fetchCustomersUseCase(String baseUrl) {
-        return spy(new FetchCustomersUseCase(baseUrl, mock(Context.class)));
+        FetchCustomersUseCase fetchCustomersUseCase
+            = new FetchCustomersUseCase(baseUrl,
+                mock(Context.class));
+        fetchCustomersUseCase.setBeingTested();
+        return spy(fetchCustomersUseCase);
     }
 
 }

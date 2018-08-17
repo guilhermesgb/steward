@@ -16,6 +16,16 @@ public interface FetchTablesViewState extends Union4<FetchTablesViewState.Initia
 
     final class Initial extends ViewStateOption implements FetchTablesViewState {
 
+        private List<Table> cachedTables;
+
+        public Initial(List<Table> cachedTables) {
+            this.cachedTables = cachedTables;
+        }
+
+        public List<Table> getCachedTables() {
+            return cachedTables;
+        }
+
         @Override
         public void continued(Consumer<Initial> initial,
                               Consumer<FetchingTables> fetchingTables,

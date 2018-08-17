@@ -16,6 +16,16 @@ public interface FetchCustomersViewState extends Union4<FetchCustomersViewState.
 
     final class Initial extends ViewStateOption implements FetchCustomersViewState {
 
+        private List<Customer> cachedCustomers;
+
+        public Initial(List<Customer> cachedCustomers) {
+            this.cachedCustomers = cachedCustomers;
+        }
+
+        public List<Customer> getCachedCustomers() {
+            return cachedCustomers;
+        }
+
         @Override
         public void continued(Consumer<Initial> initial,
                               Consumer<FetchingCustomers> fetchingCustomers,

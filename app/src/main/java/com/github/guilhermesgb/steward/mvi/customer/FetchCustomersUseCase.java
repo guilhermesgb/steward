@@ -101,10 +101,14 @@ public class FetchCustomersUseCase extends UseCase {
                                 if (!(state instanceof FetchCustomersViewState.ErrorFetchingCustomers)) {
                                     return Observable.just(state);
                                 }
+                                FetchCustomersViewState.ErrorFetchingCustomers error
+                                    = (FetchCustomersViewState.ErrorFetchingCustomers) state;
+                                FetchCustomersViewState.Initial initial
+                                    = new FetchCustomersViewState.Initial(error.getCachedCustomers());
                                 // Whenever an error occurs, we want to follow up with the initial state again after a 5 seconds.
                                 // That's achieved with the combination of zip and take operations below.
-                                return Observable.zip(Observable.interval(5, TimeUnit.SECONDS).take(2),
-                                    Observable.fromArray(state, new FetchCustomersViewState.Initial()),
+                                return Observable.zip(Observable.interval(5, !isBeingTested() ? TimeUnit.SECONDS
+                                        : TimeUnit.MILLISECONDS).take(2), Observable.fromArray(error, initial),
                                     new BiFunction<Long, FetchCustomersViewState, FetchCustomersViewState>() {
                                         @Override
                                         public FetchCustomersViewState apply(Long ignore, FetchCustomersViewState state) {

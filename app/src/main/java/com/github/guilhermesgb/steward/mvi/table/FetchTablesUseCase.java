@@ -7,6 +7,7 @@ import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.mvi.table.schema.Tables;
 import com.github.guilhermesgb.steward.utils.UseCase;
+import com.github.guilhermesgb.steward.utils.ViewStateOption;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -128,10 +129,14 @@ public class FetchTablesUseCase extends UseCase {
                                 if (!(state instanceof FetchTablesViewState.ErrorFetchingTables)) {
                                     return Observable.just(state);
                                 }
+                                FetchTablesViewState.ErrorFetchingTables error
+                                    = (FetchTablesViewState.ErrorFetchingTables) state;
+                                FetchTablesViewState.Initial initial
+                                    = new FetchTablesViewState.Initial(error.getCachedTables());
                                 // Whenever an error occurs, we want to follow up with the initial state again after a 5 seconds.
                                 // That's achieved with the combination of zip and take operations below.
-                                return Observable.zip(Observable.interval(5, TimeUnit.SECONDS).take(2),
-                                    Observable.fromArray(state, new FetchTablesViewState.Initial()),
+                                return Observable.zip(Observable.interval(5, !isBeingTested() ? TimeUnit.SECONDS
+                                        : TimeUnit.MILLISECONDS).take(2), Observable.fromArray(error, initial),
                                     new BiFunction<Long, FetchTablesViewState, FetchTablesViewState>() {
                                         @Override
                                         public FetchTablesViewState apply(Long ignore, FetchTablesViewState state) {

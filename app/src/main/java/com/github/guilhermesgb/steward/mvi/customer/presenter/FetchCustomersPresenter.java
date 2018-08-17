@@ -6,8 +6,11 @@ import android.support.annotation.NonNull;
 import com.github.guilhermesgb.steward.mvi.customer.FetchCustomersUseCase;
 import com.github.guilhermesgb.steward.mvi.customer.intent.FetchCustomersAction;
 import com.github.guilhermesgb.steward.mvi.customer.model.FetchCustomersViewState;
+import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
 import com.github.guilhermesgb.steward.mvi.customer.view.FetchCustomersView;
 import com.hannesdorfmann.mosby3.mvi.MviBasePresenter;
+
+import java.util.LinkedList;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
@@ -49,7 +52,8 @@ public class FetchCustomersPresenter
         })
         .observeOn(AndroidSchedulers.mainThread());
 
-        subscribeViewState(fetchCustomers.startWith(new FetchCustomersViewState.Initial()),
+        subscribeViewState(fetchCustomers
+            .startWith(new FetchCustomersViewState.Initial(new LinkedList<Customer>())),
             new ViewStateConsumer<FetchCustomersView, FetchCustomersViewState>() {
                 @Override
                 public void accept(@NonNull FetchCustomersView view, @NonNull FetchCustomersViewState state) {

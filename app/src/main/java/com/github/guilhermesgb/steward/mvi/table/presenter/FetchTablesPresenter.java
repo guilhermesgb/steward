@@ -6,8 +6,11 @@ import android.support.annotation.NonNull;
 import com.github.guilhermesgb.steward.mvi.table.FetchTablesUseCase;
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
+import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.mvi.table.view.FetchTablesView;
 import com.hannesdorfmann.mosby3.mvi.MviBasePresenter;
+
+import java.util.LinkedList;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
@@ -49,7 +52,8 @@ public class FetchTablesPresenter
         })
         .observeOn(AndroidSchedulers.mainThread());
 
-        subscribeViewState(fetchTables.startWith(new FetchTablesViewState.Initial()),
+        subscribeViewState(fetchTables
+            .startWith(new FetchTablesViewState.Initial(new LinkedList<Table>())),
             new ViewStateConsumer<FetchTablesView, FetchTablesViewState>() {
                 @Override
                 public void accept(@NonNull FetchTablesView view, @NonNull FetchTablesViewState state) {
