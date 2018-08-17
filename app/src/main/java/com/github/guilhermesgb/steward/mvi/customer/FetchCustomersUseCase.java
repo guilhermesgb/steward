@@ -40,6 +40,9 @@ public class FetchCustomersUseCase extends UseCase {
                                 @Override
                                 public FetchCustomersViewState apply(FetchCustomersViewState.SuccessFetchingCustomers success) {
                                     //In case we have remote customers, we discard local state in favor of remote state.
+                                    //Persisting merged state in the local database.
+                                    getDatabase().customerDao().deleteAll();
+                                    getDatabase().customerDao().insertAll(success.getCustomers());
                                     return success;
                                 }
                             },

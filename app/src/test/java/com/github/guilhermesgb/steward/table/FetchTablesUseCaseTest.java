@@ -44,6 +44,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
     @Test
     public void fetchTables_noLocalTables_noRemoteTables_shouldYieldEmptyResults() throws Exception {
+        // ### SETUP PHASE ###
+
         //Setting up mock server to return empty list of tables.
         List<MockResponse> expectedResponses = Collections.singletonList
             (new MockResponse().setResponseCode(200).setBody("[]"));
@@ -63,6 +65,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
+                // ### EXECUTION PHASE ###
+
                 final List<FetchTablesViewState> states = new LinkedList<>();
                 new IterableUtils<FetchTablesViewState>()
                     .forEach(fetchTablesUseCase.doFetchTables(new FetchTablesAction()).blockingIterable(),
@@ -73,6 +77,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                             }
                         }
                     );
+
+                // ### VERIFICATION PHASE ###
 
                 assertThat(states, hasSize(3));
                 assertThat(states.get(0), instanceOf(FetchTablesViewState.FetchingTables.class));
@@ -105,7 +111,9 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
     }
 
     @Test
-    public void fetchTables_noLocalTables_someRemoteTables_shouldTheseRemoteTables() throws Exception {
+    public void fetchTables_noLocalTables_someRemoteTables_shouldYieldTheseRemoteTables() throws Exception {
+        // ### SETUP PHASE ###
+
         //Setting up mock server to return these four tables below.
         List<MockResponse> expectedResponses = Collections.singletonList
                 (new MockResponse().setResponseCode(200).setBody("[true, false, false, true]"));
@@ -125,6 +133,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
+                // ### EXECUTION PHASE ###
+
                 final List<FetchTablesViewState> states = new LinkedList<>();
                 new IterableUtils<FetchTablesViewState>()
                     .forEach(fetchTablesUseCase.doFetchTables(new FetchTablesAction()).blockingIterable(),
@@ -135,6 +145,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                             }
                         }
                     );
+
+                // ### VERIFICATION PHASE ###
 
                 assertThat(states, hasSize(3));
                 assertThat(states.get(0), instanceOf(FetchTablesViewState.FetchingTables.class));
@@ -177,18 +189,20 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
                 verify(tableDaoMock).deleteAll();
-                List<Table> tablesExpectedToHaveBeenStoredNow = new LinkedList<>();
-                tablesExpectedToHaveBeenStoredNow.add(new Table(0, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(1, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(2, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(3, true));
-                verify(tableDaoMock).insertAll(tablesExpectedToHaveBeenStoredNow);
+                List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
+                tablesExpectedToBeingStoredNow.add(new Table(0, true));
+                tablesExpectedToBeingStoredNow.add(new Table(1, false));
+                tablesExpectedToBeingStoredNow.add(new Table(2, false));
+                tablesExpectedToBeingStoredNow.add(new Table(3, true));
+                verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
             }
         });
     }
 
     @Test
     public void fetchTables_someLocalTables_sameAmountOfRemoteTables_shouldPreserveLocalTables() throws Exception {
+        // ### SETUP PHASE ###
+
         //Setting up mock server to return these four tables below.
         List<MockResponse> expectedResponses = Collections.singletonList
             (new MockResponse().setResponseCode(200).setBody("[true, false, false, true]"));
@@ -213,6 +227,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
+                // ### EXECUTION PHASE ###
+
                 final List<FetchTablesViewState> states = new LinkedList<>();
                 new IterableUtils<FetchTablesViewState>()
                     .forEach(fetchTablesUseCase.doFetchTables(new FetchTablesAction()).blockingIterable(),
@@ -223,6 +239,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                             }
                         }
                     );
+
+                // ### VERIFICATION PHASE ###
 
                 assertThat(states, hasSize(3));
                 assertThat(states.get(0), instanceOf(FetchTablesViewState.FetchingTables.class));
@@ -281,18 +299,20 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
                 verify(tableDaoMock).deleteAll();
-                List<Table> tablesExpectedToHaveBeenStoredNow = new LinkedList<>();
-                tablesExpectedToHaveBeenStoredNow.add(new Table(0, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(1, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(2, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(3, true));
-                verify(tableDaoMock).insertAll(tablesExpectedToHaveBeenStoredNow);
+                List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
+                tablesExpectedToBeingStoredNow.add(new Table(0, false));
+                tablesExpectedToBeingStoredNow.add(new Table(1, false));
+                tablesExpectedToBeingStoredNow.add(new Table(2, true));
+                tablesExpectedToBeingStoredNow.add(new Table(3, true));
+                verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
             }
         });
     }
 
     @Test
     public void fetchTables_someLocalTables_moreRemoteTablesAreReturned_shouldPreserveLocalTablesButIncludeNewTablesToo() throws Exception {
+        // ### SETUP PHASE ###
+
         //Setting up mock server to return these six tables below.
         List<MockResponse> expectedResponses = Collections.singletonList
             (new MockResponse().setResponseCode(200).setBody("[true, false, false, true, false, true]"));
@@ -317,6 +337,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
+                // ### EXECUTION PHASE ###
+
                 final List<FetchTablesViewState> states = new LinkedList<>();
                 new IterableUtils<FetchTablesViewState>()
                     .forEach(fetchTablesUseCase.doFetchTables(new FetchTablesAction()).blockingIterable(),
@@ -327,6 +349,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                             }
                         }
                     );
+
+                // ### VERIFICATION PHASE ###
 
                 assertThat(states, hasSize(3));
                 assertThat(states.get(0), instanceOf(FetchTablesViewState.FetchingTables.class));
@@ -393,20 +417,22 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
                 verify(tableDaoMock).deleteAll();
-                List<Table> tablesExpectedToHaveBeenStoredNow = new LinkedList<>();
-                tablesExpectedToHaveBeenStoredNow.add(new Table(0, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(1, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(2, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(3, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(4, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(5, true));
-                verify(tableDaoMock).insertAll(tablesExpectedToHaveBeenStoredNow);
+                List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
+                tablesExpectedToBeingStoredNow.add(new Table(0, false));
+                tablesExpectedToBeingStoredNow.add(new Table(1, false));
+                tablesExpectedToBeingStoredNow.add(new Table(2, true));
+                tablesExpectedToBeingStoredNow.add(new Table(3, true));
+                tablesExpectedToBeingStoredNow.add(new Table(4, false));
+                tablesExpectedToBeingStoredNow.add(new Table(5, true));
+                verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
             }
         });
     }
 
     @Test
     public void fetchTables_someLocalTables_lessRemoteTablesAreReturned_shouldPreserveLocalTables() throws Exception {
+        // ### SETUP PHASE ###
+
         //Setting up mock server to return these two tables below.
         List<MockResponse> expectedResponses = Collections.singletonList
             (new MockResponse().setResponseCode(200).setBody("[true, false]"));
@@ -433,6 +459,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
+                // ### EXECUTION PHASE ###
+
                 final List<FetchTablesViewState> states = new LinkedList<>();
                 new IterableUtils<FetchTablesViewState>()
                     .forEach(fetchTablesUseCase.doFetchTables(new FetchTablesAction()).blockingIterable(),
@@ -443,6 +471,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                             }
                         }
                     );
+
+                // ### VERIFICATION PHASE ###
 
                 assertThat(states, hasSize(3));
                 assertThat(states.get(0), instanceOf(FetchTablesViewState.FetchingTables.class));
@@ -517,14 +547,14 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
                 verify(tableDaoMock).deleteAll();
-                List<Table> tablesExpectedToHaveBeenStoredNow = new LinkedList<>();
-                tablesExpectedToHaveBeenStoredNow.add(new Table(0, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(1, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(2, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(3, true));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(4, false));
-                tablesExpectedToHaveBeenStoredNow.add(new Table(5, true));
-                verify(tableDaoMock).insertAll(tablesExpectedToHaveBeenStoredNow);
+                List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
+                tablesExpectedToBeingStoredNow.add(new Table(0, false));
+                tablesExpectedToBeingStoredNow.add(new Table(1, false));
+                tablesExpectedToBeingStoredNow.add(new Table(2, true));
+                tablesExpectedToBeingStoredNow.add(new Table(3, true));
+                tablesExpectedToBeingStoredNow.add(new Table(4, false));
+                tablesExpectedToBeingStoredNow.add(new Table(5, true));
+                verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
             }
         });
     }

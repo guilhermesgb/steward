@@ -9,6 +9,7 @@ import android.support.annotation.NonNull;
 import com.google.gson.JsonObject;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 import static com.github.guilhermesgb.steward.utils.JsonUtils.getOptionalString;
 
@@ -49,7 +50,7 @@ public class Customer implements Serializable, Parcelable {
         dest.writeString(lastName);
     }
 
-    Customer(@NonNull String id, String firstName, String lastName) {
+    public Customer(@NonNull String id, String firstName, String lastName) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -90,6 +91,22 @@ public class Customer implements Serializable, Parcelable {
     @Override
     public String toString() {
         return jsonizeFrom(this).toString();
+    }
+
+    @Override
+    @SuppressWarnings({"ConstantConditions", "StringEquality"})
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Customer customer = (Customer) o;
+        return ((id == customer.id) || (id != null && id.equals(customer.id))) &&
+            ((firstName == customer.firstName) || (firstName != null && firstName.equals(customer.firstName))) &&
+            ((lastName == customer.lastName) || (lastName != null && lastName.equals(customer.lastName)));
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(new Object[] { id, firstName, lastName });
     }
 
 }
