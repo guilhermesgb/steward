@@ -13,6 +13,7 @@ import com.github.guilhermesgb.steward.utils.IterableUtils;
 import com.github.guilhermesgb.steward.utils.MockedServerUnitTest;
 
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -32,7 +33,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
-import static org.mockito.ArgumentMatchers.anyListOf;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -40,7 +40,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings({"deprecation", "unchecked"})
 public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
     @Test
@@ -59,7 +58,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                     (Single.<List<Table>>just(new LinkedList<Table>()));
                 //Turning database writes into no-ops.
                 doNothing().when(tableDaoMock).deleteAll();
-                doNothing().when(tableDaoMock).insertAll(anyListOf(Table.class));
+                doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
@@ -121,7 +120,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                     (Single.<List<Table>>just(new LinkedList<Table>()));
                 //Turning database writes into no-ops.
                 doNothing().when(tableDaoMock).deleteAll();
-                doNothing().when(tableDaoMock).insertAll(anyListOf(Table.class));
+                doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
@@ -206,10 +205,10 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToHaveBeenStoredThen.add(new Table(2, true));
                 tablesExpectedToHaveBeenStoredThen.add(new Table(3, true));
                 when(tableDaoMock.findAll()).thenReturn
-                    (Single.<List<Table>>just(tablesExpectedToHaveBeenStoredThen));
+                    (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
                 doNothing().when(tableDaoMock).deleteAll();
-                doNothing().when(tableDaoMock).insertAll(anyListOf(Table.class));
+                doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
@@ -310,10 +309,10 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToHaveBeenStoredThen.add(new Table(2, true));
                 tablesExpectedToHaveBeenStoredThen.add(new Table(3, true));
                 when(tableDaoMock.findAll()).thenReturn
-                    (Single.<List<Table>>just(tablesExpectedToHaveBeenStoredThen));
+                    (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
                 doNothing().when(tableDaoMock).deleteAll();
-                doNothing().when(tableDaoMock).insertAll(anyListOf(Table.class));
+                doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
@@ -426,10 +425,10 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToHaveBeenStoredThen.add(new Table(4, false));
                 tablesExpectedToHaveBeenStoredThen.add(new Table(5, true));
                 when(tableDaoMock.findAll()).thenReturn
-                    (Single.<List<Table>>just(tablesExpectedToHaveBeenStoredThen));
+                    (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
                 doNothing().when(tableDaoMock).deleteAll();
-                doNothing().when(tableDaoMock).insertAll(anyListOf(Table.class));
+                doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
