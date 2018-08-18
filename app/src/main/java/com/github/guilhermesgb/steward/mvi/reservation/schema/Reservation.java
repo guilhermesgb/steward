@@ -8,8 +8,10 @@ import android.support.annotation.NonNull;
 
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
+import com.google.gson.JsonObject;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 @Entity(
     tableName = "reservation",
@@ -72,6 +74,37 @@ public class Reservation implements Serializable, Parcelable {
 
     public String getExpirationDate() {
         return expirationDate;
+    }
+
+    private static JsonObject jsonizeFrom(Reservation reservation) {
+        if (reservation == null) {
+            return null;
+        }
+        JsonObject json = new JsonObject();
+        json.addProperty("customer_id", reservation.customerId);
+        json.addProperty("table_number", reservation.tableNumber);
+        json.addProperty("expiration_date", reservation.expirationDate);
+        return json;
+    }
+
+    @Override
+    public String toString() {
+        return jsonizeFrom(this).toString();
+    }
+
+    @Override
+    @SuppressWarnings({"ConstantConditions", "StringEquality"})
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Reservation that = (Reservation) o;
+        return tableNumber == that.tableNumber &&
+            ((customerId == that.customerId) || (customerId != null && customerId.equals(that.customerId)));
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(new Object[] { customerId, tableNumber });
     }
 
 }

@@ -11,7 +11,10 @@ import com.github.guilhermesgb.steward.mvi.customer.schema.CustomerDao;
 import com.github.guilhermesgb.steward.mvi.reservation.MakeReservationsUseCase;
 import com.github.guilhermesgb.steward.mvi.reservation.intent.ChooseCustomerAction;
 import com.github.guilhermesgb.steward.mvi.reservation.intent.ChooseTableAction;
+import com.github.guilhermesgb.steward.mvi.reservation.intent.ConfirmReservationAction;
 import com.github.guilhermesgb.steward.mvi.reservation.model.MakeReservationsViewState;
+import com.github.guilhermesgb.steward.mvi.reservation.schema.Reservation;
+import com.github.guilhermesgb.steward.mvi.reservation.schema.ReservationDao;
 import com.github.guilhermesgb.steward.mvi.table.FetchTablesUseCase;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
@@ -20,7 +23,9 @@ import com.github.guilhermesgb.steward.network.ApiEndpoints;
 import com.github.guilhermesgb.steward.utils.IterableUtils;
 import com.github.guilhermesgb.steward.utils.MockedServerUnitTest;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import java.util.LinkedList;
@@ -41,6 +46,8 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -52,7 +59,7 @@ import static org.mockito.Mockito.when;
 public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
     @Test
-    public void makeReservations_noLocalCustomers_remoteCustomers_chooseRemoteCustomer_shouldYieldThatCustomer() throws Exception {
+    public void chooseCustomers_noLocalCustomers_remoteCustomers_chooseRemoteCustomer_shouldYieldThatCustomer() throws Exception {
         // ### SETUP PHASE ###
 
         //Setting up mock server to return these four customers below.
@@ -81,14 +88,15 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         //Setting up database to return an empty list of customers;
         List<Customer> localCustomers = new LinkedList<>();
 
-        setupMakeReservationsTest(localCustomers, remoteCustomers, new MakeReservationsTestSetupCallback() {
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, new PickReservationDetailsTestSetupCallback() {
             @Override
-            public void onSetupComplete(MockWebServer server,
-                                        CustomerDao customerDaoMock,
-                                        TableDao tableDaoMock,
-                                        MakeReservationsUseCase makeReservationsUseCase,
-                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
-                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
 
                 // ### PREREQUISITES VERIFICATION PHASE ###
 
@@ -184,7 +192,7 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
     }
 
     @Test
-    public void makeReservations_someLocalCustomers_chooseLocalCustomer_chosenCustomerNotInRemoteCustomers_shouldYieldThatCustomerNonetheless() throws Exception {
+    public void chooseCustomers_someLocalCustomers_chooseLocalCustomer_chosenCustomerNotInRemoteCustomers_shouldYieldThatCustomerNonetheless() throws Exception {
         // ### SETUP PHASE ###
 
         //Setting up mock server to return these two customers below.
@@ -205,14 +213,15 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         localCustomers.add(new Customer("2", "Mother", "Teresa"));
         localCustomers.add(new Customer("0", "Marilyn", "Monroe"));
 
-        setupMakeReservationsTest(localCustomers, remoteCustomers, new MakeReservationsTestSetupCallback() {
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, new PickReservationDetailsTestSetupCallback() {
             @Override
-            public void onSetupComplete(MockWebServer server,
-                                        CustomerDao customerDaoMock,
-                                        TableDao tableDaoMock,
-                                        MakeReservationsUseCase makeReservationsUseCase,
-                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
-                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
 
                 // ### PREREQUISITES VERIFICATION PHASE ###
 
@@ -306,7 +315,7 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
     }
 
     @Test
-    public void makeReservations_noLocalTables_remoteTables_chooseRemoteAvailableTable_shouldYieldThatTable() throws Exception {
+    public void chooseTables_noLocalTables_remoteTables_chooseRemoteAvailableTable_shouldYieldThatTable() throws Exception {
         // ### SETUP PHASE ###
 
         //Setting up mock server to return these four customers below.
@@ -342,14 +351,15 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         //Setting up database to return this empty list of tables below.
         List<Table> localTables = new LinkedList<>();
 
-        setupMakeReservationsTest(localCustomers, remoteCustomers, localTables, remoteTables, new MakeReservationsTestSetupCallback() {
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, localTables, remoteTables, new PickReservationDetailsTestSetupCallback() {
             @Override
-            public void onSetupComplete(MockWebServer server,
-                                        CustomerDao customerDaoMock,
-                                        TableDao tableDaoMock,
-                                        MakeReservationsUseCase makeReservationsUseCase,
-                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
-                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
 
                 // ### PREREQUISITES VERIFICATION PHASE ###
 
@@ -510,7 +520,7 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
     }
 
     @Test
-    public void makeReservations_noLocalTables_remoteTables_chooseRemoteUnavailableTable_shouldYieldThatTableNonetheless() throws Exception {
+    public void chooseTables_noLocalTables_remoteTables_chooseRemoteUnavailableTable_shouldYieldThatTableNonetheless() throws Exception {
         // ### SETUP PHASE ###
 
         //Setting up mock server to return these four customers below.
@@ -546,14 +556,15 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         //Setting up database to return this empty list of tables below.
         List<Table> localTables = new LinkedList<>();
 
-        setupMakeReservationsTest(localCustomers, remoteCustomers, localTables, remoteTables, new MakeReservationsTestSetupCallback() {
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, localTables, remoteTables, new PickReservationDetailsTestSetupCallback() {
             @Override
-            public void onSetupComplete(MockWebServer server,
-                                        CustomerDao customerDaoMock,
-                                        TableDao tableDaoMock,
-                                        MakeReservationsUseCase makeReservationsUseCase,
-                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
-                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
 
                 // ### PREREQUISITES VERIFICATION PHASE ###
 
@@ -714,7 +725,7 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
     }
 
     @Test
-    public void makeReservations_localTables_errorFetchingRemoteTables_chooseLocalAvailableTable_shouldYieldThatTableNonetheless() throws Exception {
+    public void chooseTables_localTables_errorFetchingRemoteTables_chooseLocalAvailableTable_shouldYieldThatTableNonetheless() throws Exception {
         // ### SETUP PHASE ###
 
         //Setting up mock server to return these four customers below.
@@ -747,7 +758,7 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
         //Setting up mock server to return these five tables below.
         String remoteTables = null;
-        //Setting up database to return this empty list of tables below.
+        //Setting up database to return these five tables below.
         List<Table> localTables = new LinkedList<>();
         localTables.add(new Table(0, false));
         localTables.add(new Table(1, true));
@@ -755,14 +766,16 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         localTables.add(new Table(3, false));
         localTables.add(new Table(4, true));
 
-        setupMakeReservationsTest(localCustomers, remoteCustomers, localTables, remoteTables, new MakeReservationsTestSetupCallback() {
+        //noinspection ConstantConditions
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, localTables, remoteTables, new PickReservationDetailsTestSetupCallback() {
             @Override
-            public void onSetupComplete(MockWebServer server,
-                                        CustomerDao customerDaoMock,
-                                        TableDao tableDaoMock,
-                                        MakeReservationsUseCase makeReservationsUseCase,
-                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
-                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
 
                 // ### PREREQUISITES VERIFICATION PHASE ###
 
@@ -971,14 +984,246 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         });
     }
 
-    private void setupMakeReservationsTest(final List<Customer> localCustomers, final String remoteCustomers,
-                                           final MakeReservationsTestSetupCallback callback) throws Exception {
-        setupMakeReservationsTest(localCustomers, remoteCustomers, new LinkedList<Table>(), "[]", callback);
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_placeIdleCustomerIntoAvailableTable_shouldYieldSuccessfulReservation() throws Exception {
+        // ### SETUP PHASE ###
+
+        final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
+        final Table chosenTable = new Table(2, true);
+        List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        Table tableByNumberFound = chosenTable;
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+                new ConfirmReservationTestSetupCallback() {
+                    @Override
+                    public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                                CustomerDao customerDaoMock,
+                                                                TableDao tableDaoMock,
+                                                                ReservationDao reservationDaoMock,
+                                                                MakeReservationsUseCase makeReservationsUseCase,
+                                                                MakeReservationsViewState.TableChosen state) throws Exception {
+
+                        // ### EXECUTION PHASE ###
+
+                        DateTime acceptableExpirationTimeLowerBound = DateTime.now().plusMinutes(9);
+                        DateTime acceptableExpirationTimeUpperBound = DateTime.now().plusMinutes(11);
+
+                        ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                        final List<MakeReservationsViewState> states = new LinkedList<>();
+                        new IterableUtils<MakeReservationsViewState>()
+                            .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                                new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                    @Override
+                                    public void doForEach(MakeReservationsViewState state) {
+                                        states.add(state);
+                                    }
+                                }
+                            );
+
+                        // ### VERIFICATION PHASE ###
+
+                        assertThat(states, hasSize(2));
+
+                        assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                        MakeReservationsViewState.MakingReservation loading
+                            = (MakeReservationsViewState.MakingReservation) states.get(0);
+                        MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                        assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                            hasProperty("number", equalTo(chosenTable.getNumber())),
+                            hasProperty("available", equalTo(chosenTable.isAvailable()))
+                        ));
+                        assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                            hasProperty("id", equalTo(chosenCustomer.getId())),
+                            hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                            hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                        ));
+
+                        assertThat(states.get(1), instanceOf(MakeReservationsViewState.SuccessMakingReservation.class));
+                        MakeReservationsViewState.SuccessMakingReservation success
+                            = (MakeReservationsViewState.SuccessMakingReservation) states.get(1);
+                        MakeReservationsViewState.TableChosen successSubstate = success.getFinalSubstate();
+                        assertThat(successSubstate.getChosenTable(), allOf(isA(Table.class),
+                            hasProperty("number", equalTo(chosenTable.getNumber())),
+                            hasProperty("available", equalTo(chosenTable.isAvailable()))
+                        ));
+                        assertThat(successSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                            hasProperty("id", equalTo(chosenCustomer.getId())),
+                            hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                            hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                        ));
+
+                        //Verifying if test made expected API calls.
+                        assertThat(server.getRequestCount(), is(2));
+                        String expectedEndpoint = "/" + ApiEndpoints.class
+                            .getMethod("fetchCustomers").getAnnotation(GET.class).value();
+                        RecordedRequest request = server.takeRequest();
+                        assertThat(request.getPath(), is(expectedEndpoint));
+                        expectedEndpoint = "/" + ApiEndpoints.class
+                            .getMethod("fetchTables").getAnnotation(GET.class).value();
+                        request = server.takeRequest();
+                        assertThat(request.getPath(), is(expectedEndpoint));
+                        server.shutdown();
+
+                        //Verifying if test made expected database operations.
+                        verify(customerDaoMock).findAll();
+                        verify(customerDaoMock).deleteAll();
+                        List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
+                        customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
+                        customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
+                        customersExpectedToBeingStoredNow.add(new Customer("2", "Mother", "Teresa"));
+                        customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
+                        verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
+                        verify(tableDaoMock).findAll();
+                        verify(tableDaoMock).deleteAll();
+                        List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
+                        tablesExpectedToBeingStoredNow.add(new Table(0, false));
+                        tablesExpectedToBeingStoredNow.add(new Table(1, true));
+                        tablesExpectedToBeingStoredNow.add(new Table(2, true));
+                        tablesExpectedToBeingStoredNow.add(new Table(3, false));
+                        tablesExpectedToBeingStoredNow.add(new Table(4, true));
+                        verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                        verify(tableDaoMock).findTableByNumber(chosenTable.getNumber());
+                        ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+                        verify(reservationDaoMock).insert(captor.capture());
+                        Reservation reservationExpectedToBeingStoredNow = captor.getValue();
+                        assertThat(reservationExpectedToBeingStoredNow.getCustomerId(), is(chosenCustomer.getId()));
+                        assertThat(reservationExpectedToBeingStoredNow.getTableNumber(), is(chosenTable.getNumber()));
+                        DateTime expirationDate = new DateTime(reservationExpectedToBeingStoredNow.getExpirationDate());
+                        assertThat("Expiration date is lower than acceptable lower bound",
+                            expirationDate.isAfter(acceptableExpirationTimeLowerBound));
+                        assertThat("Expiration date is bigger than acceptable upper bound",
+                            expirationDate.isBefore(acceptableExpirationTimeUpperBound));
+
+                        verify(reservationDaoMock).deleteAllForCustomer(chosenCustomer.getId());
+                        verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
+                    }
+                });
     }
 
-    private void setupMakeReservationsTest(final List<Customer> localCustomers, final String remoteCustomers,
-                                           final List<Table> localTables, final String remoteTables,
-                                           final MakeReservationsTestSetupCallback callback) throws Exception {
+    private void setupConfirmReservationTest(final Customer chosenCustomer,
+                                             final Table chosenTable,
+                                             final List<Table> tablesForGivenCustomerFound,
+                                             final Table tableByNumberFound,
+                                             final ConfirmReservationTestSetupCallback callback) throws Exception {
+
+        //Setting up mock server to return these four customers below.
+        String remoteCustomers = "[\n" +
+                "  {\n" +
+                "    \"customerFirstName\": \"Marilyn\",\n" +
+                "    \"customerLastName\": \"Monroe\",\n" +
+                "    \"id\": 0\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"customerFirstName\": \"Abraham\",\n" +
+                "    \"customerLastName\": \"Lincoln\",\n" +
+                "    \"id\": 1\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"customerFirstName\": \"Mother\",\n" +
+                "    \"customerLastName\": \"Teresa\",\n" +
+                "    \"id\": 2\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"customerFirstName\": \"John F.\",\n" +
+                "    \"customerLastName\": \"Kennedy\",\n" +
+                "    \"id\": 3\n" +
+                "  }\n" +
+                "]";
+        //Setting up database to return these two customers below;
+        List<Customer> localCustomers = new LinkedList<>();
+        localCustomers.add(new Customer("2", "Mother", "Teresa"));
+        localCustomers.add(new Customer("0", "Marilyn", "Monroe"));
+
+        //Setting up mock server to return these five tables below.
+        final String remoteTables = "[false, true, true, false, true]";
+        //Setting up database to return this empty list of tables below.
+        final List<Table> localTables = new LinkedList<>();
+        localTables.add(new Table(0, false));
+        localTables.add(new Table(1, true));
+        localTables.add(new Table(2, true));
+        localTables.add(new Table(3, false));
+        localTables.add(new Table(4, true));
+
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, localTables, remoteTables, new PickReservationDetailsTestSetupCallback() {
+            @Override
+            public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                        CustomerDao customerDaoMock,
+                                                        TableDao tableDaoMock,
+                                                        ReservationDao reservationDaoMock,
+                                                        MakeReservationsUseCase makeReservationsUseCase,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers localSuccessFetchingCustomers,
+                                                        FetchCustomersViewState.SuccessFetchingCustomers remoteSuccessFetchingCustomers) throws Exception {
+
+                ChooseCustomerAction prerequisiteAction = new ChooseCustomerAction(remoteSuccessFetchingCustomers, chosenCustomer);
+
+                final List<MakeReservationsViewState> states = new LinkedList<>();
+                new IterableUtils<MakeReservationsViewState>()
+                    .forEach(makeReservationsUseCase.chooseCustomer(prerequisiteAction).blockingIterable(),
+                        new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                            @Override
+                            public void doForEach(MakeReservationsViewState state) {
+                                states.add(state);
+                            }
+                        }
+                    );
+
+                MakeReservationsViewState.CustomerChosen remoteSuccessFetchingTables
+                    = (MakeReservationsViewState.CustomerChosen) states.get(2);
+                FetchTablesViewState.SuccessFetchingTables remoteSuccessSubstate = (FetchTablesViewState
+                    .SuccessFetchingTables) remoteSuccessFetchingTables.getSecondSubstate();
+
+                ChooseTableAction anotherPrerequisiteAction = new ChooseTableAction
+                    (remoteSuccessFetchingTables, remoteSuccessSubstate, chosenTable);
+
+                states.clear();
+                new IterableUtils<MakeReservationsViewState>()
+                    .forEach(makeReservationsUseCase.chooseTable(anotherPrerequisiteAction).blockingIterable(),
+                        new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                            @Override
+                            public void doForEach(MakeReservationsViewState state) {
+                                states.add(state);
+                            }
+                        }
+                    );
+
+                assertThat(states, hasSize(1));
+                assertThat(states.get(0), instanceOf(MakeReservationsViewState.TableChosen.class));
+
+                MakeReservationsViewState.TableChosen tableChosen
+                    = (MakeReservationsViewState.TableChosen) states.get(0);
+                assertThat(tableChosen.getChosenTable(), allOf(isA(Table.class),
+                    hasProperty("number", equalTo(chosenTable.getNumber())),
+                    hasProperty("available", equalTo(chosenTable.isAvailable()))
+                ));
+                assertThat(tableChosen.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                    hasProperty("id", equalTo(chosenCustomer.getId())),
+                    hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                    hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                ));
+
+                when(tableDaoMock.findTableByNumber(anyInt()))
+                    .thenReturn(Single.just(tableByNumberFound));
+                when(reservationDaoMock.findTablesForGivenCustomer(anyString()))
+                    .thenReturn(Single.just(tablesForGivenCustomerFound));
+
+                callback.onSetupAndPrerequisitesComplete(server, customerDaoMock,
+                    tableDaoMock, reservationDaoMock, makeReservationsUseCase, tableChosen);
+            }
+        });
+    }
+
+    private void setupPickReservationDetailsTest(final List<Customer> localCustomers, final String remoteCustomers,
+                                                 final PickReservationDetailsTestSetupCallback callback) throws Exception {
+        setupPickReservationDetailsTest(localCustomers, remoteCustomers, new LinkedList<Table>(), "[]", callback);
+    }
+
+    private void setupPickReservationDetailsTest(final List<Customer> localCustomers,
+                                                 final String remoteCustomers,
+                                                 final List<Table> localTables,
+                                                 final String remoteTables,
+                                                 final PickReservationDetailsTestSetupCallback callback) throws Exception {
         List<MockResponse> expectedResponses = new LinkedList<>();
         expectedResponses.add(isEmpty(remoteCustomers) ? new MockResponse().setResponseCode(500)
             : new MockResponse().setResponseCode(200).setBody(remoteCustomers));
@@ -997,14 +1242,19 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 TableDao tableDaoMock = mock(TableDao.class);
                 when(tableDaoMock.findAll()).thenReturn(Single.just(localTables));
 
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
+
                 //Turning database writes into no-ops.
                 doNothing().when(customerDaoMock).deleteAll();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
                 doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteAllForCustomer(anyString());
+                doNothing().when(reservationDaoMock).insert(ArgumentMatchers.<Reservation>any());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 FetchCustomersUseCase fetchCustomersUseCase = spy(makeReservationsUseCase.getFetchCustomersUseCase());
                 makeReservationsUseCase.setFetchCustomersUseCase(fetchCustomersUseCase);
                 doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
@@ -1025,35 +1275,37 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                             }
                         );
 
-                assertThat(states, hasSize(3));
-
-                assertThat(states.get(0), instanceOf(MakeReservationsViewState.Initial.class));
-                MakeReservationsViewState.Initial loading = (MakeReservationsViewState.Initial) states.get(0);
-                assertThat(loading.getSubstate(), instanceOf(FetchCustomersViewState.FetchingCustomers.class));
-
-                assertThat(states.get(1), instanceOf(MakeReservationsViewState.Initial.class));
                 MakeReservationsViewState.Initial localSuccess = (MakeReservationsViewState.Initial) states.get(1);
-                assertThat(localSuccess.getSubstate(), instanceOf(FetchCustomersViewState.SuccessFetchingCustomers.class));
-
-                assertThat(states.get(2), instanceOf(MakeReservationsViewState.Initial.class));
                 MakeReservationsViewState.Initial remoteSuccess = (MakeReservationsViewState.Initial) states.get(2);
-                assertThat(remoteSuccess.getSubstate(), instanceOf(FetchCustomersViewState.SuccessFetchingCustomers.class));
 
-                callback.onSetupComplete(server, customerDaoMock, tableDaoMock, makeReservationsUseCase,
+                callback.onSetupAndPrerequisitesComplete(server,
+                    customerDaoMock, tableDaoMock, reservationDaoMock, makeReservationsUseCase,
                     (FetchCustomersViewState.SuccessFetchingCustomers) localSuccess.getSubstate(),
                     (FetchCustomersViewState.SuccessFetchingCustomers) remoteSuccess.getSubstate());
             }
         });
     }
 
-    interface MakeReservationsTestSetupCallback {
+    interface PickReservationDetailsTestSetupCallback {
 
-        void onSetupComplete(MockWebServer server,
-                             CustomerDao customerDaoMock,
-                             TableDao tableDaoMock,
-                             MakeReservationsUseCase makeReservationsUseCase,
-                             FetchCustomersViewState.SuccessFetchingCustomers localSuccess,
-                             FetchCustomersViewState.SuccessFetchingCustomers remoteSuccess) throws Exception;
+        void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                             CustomerDao customerDaoMock,
+                                             TableDao tableDaoMock,
+                                             ReservationDao reservationDaoMock,
+                                             MakeReservationsUseCase makeReservationsUseCase,
+                                             FetchCustomersViewState.SuccessFetchingCustomers localSuccess,
+                                             FetchCustomersViewState.SuccessFetchingCustomers remoteSuccess) throws Exception;
+
+    }
+
+    interface ConfirmReservationTestSetupCallback {
+
+        void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                             CustomerDao customerDaoMock,
+                                             TableDao tableDaoMock,
+                                             ReservationDao reservationDaoMock,
+                                             MakeReservationsUseCase makeReservationsUseCase,
+                                             MakeReservationsViewState.TableChosen state) throws Exception;
 
     }
 
