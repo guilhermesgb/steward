@@ -4,6 +4,7 @@ import android.arch.persistence.room.Dao;
 import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
+import android.arch.persistence.room.RoomWarnings;
 
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 
@@ -14,6 +15,7 @@ import io.reactivex.Single;
 @Dao
 public interface ReservationDao {
 
+    @SuppressWarnings(RoomWarnings.CURSOR_MISMATCH)
     @Query("SELECT * FROM stand INNER JOIN reservation "
         + "ON stand.number=reservation.tableNumber "
         + "WHERE reservation.customerId=:customerId")

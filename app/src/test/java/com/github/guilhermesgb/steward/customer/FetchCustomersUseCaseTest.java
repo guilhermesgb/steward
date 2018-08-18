@@ -117,7 +117,7 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
         //Setting up mock server to return these four customers below.
         List<MockResponse> expectedResponses = Collections.singletonList
-            (new MockResponse().setResponseCode(200).setBody("[  \n" +
+            (new MockResponse().setResponseCode(200).setBody("[\n" +
                 "  {\n" +
                 "    \"customerFirstName\": \"Marilyn\",\n" +
                 "    \"customerLastName\": \"Monroe\",\n" +
@@ -145,7 +145,7 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
 
                 CustomerDao customerDaoMock = mock(CustomerDao.class);
-                //Mocking database to return empty list of customers as well.
+                //Mocking database to return empty list of customers.
                 when(customerDaoMock.findAll()).thenReturn
                     (Single.<List<Customer>>just(new LinkedList<Customer>()));
                 //Turning database writes into no-ops.
@@ -231,7 +231,7 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
         //Setting up mock server to return these four customers below.
         List<MockResponse> expectedResponses = Collections.singletonList
-            (new MockResponse().setResponseCode(200).setBody("[  \n" +
+            (new MockResponse().setResponseCode(200).setBody("[\n" +
                 "  {\n" +
                 "    \"customerFirstName\": \"Marilyn\",\n" +
                 "    \"customerLastName\": \"Monroe\",\n" +

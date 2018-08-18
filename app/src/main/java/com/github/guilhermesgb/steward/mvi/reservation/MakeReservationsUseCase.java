@@ -35,13 +35,36 @@ import static com.github.guilhermesgb.steward.utils.DateUtils.formatDate;
 
 public class MakeReservationsUseCase extends UseCase {
 
-    private final FetchCustomersUseCase fetchCustomersUseCase;
-    private final FetchTablesUseCase fetchTablesUseCase;
+    private FetchCustomersUseCase fetchCustomersUseCase;
+    private FetchTablesUseCase fetchTablesUseCase;
 
     public MakeReservationsUseCase(String apiBaseUrl, Context context) {
         super(apiBaseUrl, context);
         this.fetchCustomersUseCase = new FetchCustomersUseCase(apiBaseUrl, context);
         this.fetchTablesUseCase = new FetchTablesUseCase(apiBaseUrl, context);
+    }
+
+    @Override
+    public void setBeingTested() {
+        super.setBeingTested();
+        fetchCustomersUseCase.setBeingTested();
+        fetchTablesUseCase.setBeingTested();
+    }
+
+    public FetchCustomersUseCase getFetchCustomersUseCase() {
+        return fetchCustomersUseCase;
+    }
+
+    public void setFetchCustomersUseCase(FetchCustomersUseCase fetchCustomersUseCase) {
+        this.fetchCustomersUseCase = fetchCustomersUseCase;
+    }
+
+    public FetchTablesUseCase getFetchTablesUseCase() {
+        return fetchTablesUseCase;
+    }
+
+    public void setFetchTablesUseCase(FetchTablesUseCase fetchTablesUseCase) {
+        this.fetchTablesUseCase = fetchTablesUseCase;
     }
 
     public Observable<MakeReservationsViewState> fetchCustomers(final FetchCustomersAction action) {
@@ -145,7 +168,8 @@ public class MakeReservationsUseCase extends UseCase {
                             .ErrorMakingReservation(action.getFinalSubstate(), reservationException));
                     }
                 }
-            }).startWith(new MakeReservationsViewState.MakingReservation(action.getFinalSubstate()))
+            })
+            .startWith(new MakeReservationsViewState.MakingReservation(action.getFinalSubstate()))
             .onErrorReturn(new Function<Throwable, MakeReservationsViewState>() {
                 @Override
                 public MakeReservationsViewState apply(Throwable throwable) {
