@@ -60,6 +60,10 @@ public class Table implements Serializable, Parcelable {
         return available;
     }
 
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+
     public static Table dejsonizeFrom(JsonObject json) {
         return json == null ? null : new Table(
             getOptionalInt(json, "number"),
@@ -67,7 +71,7 @@ public class Table implements Serializable, Parcelable {
         );
     }
 
-    public static JsonObject jsonizeFrom(Table table) {
+    private static JsonObject jsonizeFrom(Table table) {
         if (table == null) {
             return null;
         }

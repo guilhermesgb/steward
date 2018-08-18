@@ -7,6 +7,7 @@ import android.content.Context;
 
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
 import com.github.guilhermesgb.steward.mvi.customer.schema.CustomerDao;
+import com.github.guilhermesgb.steward.mvi.reservation.schema.ReservationDao;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.mvi.table.schema.TableDao;
 
@@ -34,5 +35,7 @@ public abstract class DatabaseResource extends RoomDatabase {
     public abstract CustomerDao customerDao();
 
     public abstract TableDao tableDao();
+
+    public abstract ReservationDao reservationDao();
 
 }
