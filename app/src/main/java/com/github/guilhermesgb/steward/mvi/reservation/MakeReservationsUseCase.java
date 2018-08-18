@@ -26,7 +26,10 @@ import io.reactivex.ObservableSource;
 import io.reactivex.functions.Function;
 
 import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_BUSY;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_NOT_FOUND;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.DATABASE_FAILURE;
 import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.RESERVATION_IN_PLACE;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.TABLE_NOT_FOUND;
 import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.TABLE_UNAVAILABLE;
 import static com.github.guilhermesgb.steward.utils.DateUtils.formatDate;
 
@@ -90,12 +93,24 @@ public class MakeReservationsUseCase extends UseCase {
                                         //Finally, I need to create a new reservation for the given customer at given table, set to expire
                                         //  in 10 minutes from now (simulating the time needed for the customer to use the table for their needs).
                                         table.setAvailable(false);
-                                        getDatabase().tableDao().insert(table);
-                                        getDatabase().reservationDao().deleteAllForCustomer(chosenCustomer.getId());
-                                        getDatabase().reservationDao().insert(new Reservation(chosenCustomer.getId(),
-                                            chosenTable.getNumber(), formatDate(DateTime.now().plusMinutes(10))));
-                                        return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState
-                                            .SuccessMakingReservation(action.getFinalSubstate()));
+                                        try {
+                                            getDatabase().beginTransaction();
+                                            getDatabase().tableDao().insert(table);
+                                            getDatabase().reservationDao().deleteAllForCustomer(chosenCustomer.getId());
+                                            getDatabase().reservationDao().insert(new Reservation(chosenCustomer.getId(),
+                                                chosenTable.getNumber(), formatDate(DateTime.now().plusMinutes(10))));
+                                            getDatabase().setTransactionSuccessful();
+                                            return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState
+                                                .SuccessMakingReservation(action.getFinalSubstate()));
+                                        } catch (Throwable throwable) {
+                                            ReservationException reservationException
+                                                = new ReservationException(DATABASE_FAILURE, throwable);
+                                            return Observable.<MakeReservationsViewState>just
+                                                (new MakeReservationsViewState.ErrorMakingReservation
+                                                    (action.getFinalSubstate(), reservationException));
+                                        } finally {
+                                            getDatabase().endTransaction();
+                                        }
                                     } else {
                                         ReservationException reservationException
                                             = new ReservationException(TABLE_UNAVAILABLE);
@@ -103,6 +118,14 @@ public class MakeReservationsUseCase extends UseCase {
                                             (new MakeReservationsViewState.ErrorMakingReservation
                                                 (action.getFinalSubstate(), reservationException));
                                     }
+                                }
+                            }).onErrorReturn(new Function<Throwable, MakeReservationsViewState>() {
+                                @Override
+                                public MakeReservationsViewState apply(Throwable throwable) {
+                                    ReservationException reservationException
+                                        = new ReservationException(TABLE_NOT_FOUND, throwable);
+                                    return new MakeReservationsViewState.ErrorMakingReservation
+                                        (action.getFinalSubstate(), reservationException);
                                 }
                             });
                     } else {
@@ -121,6 +144,15 @@ public class MakeReservationsUseCase extends UseCase {
                         return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState
                             .ErrorMakingReservation(action.getFinalSubstate(), reservationException));
                     }
+                }
+            }).startWith(new MakeReservationsViewState.MakingReservation(action.getFinalSubstate()))
+            .onErrorReturn(new Function<Throwable, MakeReservationsViewState>() {
+                @Override
+                public MakeReservationsViewState apply(Throwable throwable) {
+                    ReservationException reservationException
+                        = new ReservationException(CUSTOMER_NOT_FOUND, throwable);
+                    return new MakeReservationsViewState.ErrorMakingReservation
+                        (action.getFinalSubstate(), reservationException);
                 }
             });
     }
