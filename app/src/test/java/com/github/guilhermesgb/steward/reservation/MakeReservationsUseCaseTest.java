@@ -1006,9 +1006,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                         // ### EXECUTION PHASE ###
 
-                        DateTime acceptableExpirationTimeLowerBound = DateTime.now().plusMinutes(9);
-                        DateTime acceptableExpirationTimeUpperBound = DateTime.now().plusMinutes(11);
-
                         ConfirmReservationAction action = new ConfirmReservationAction(state);
 
                         final List<MakeReservationsViewState> states = new LinkedList<>();
@@ -1023,6 +1020,9 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                             );
 
                         // ### VERIFICATION PHASE ###
+
+                        DateTime acceptableExpirationTimeLowerBound = DateTime.now().plusMinutes(9);
+                        DateTime acceptableExpirationTimeUpperBound = DateTime.now().plusMinutes(11);
 
                         assertThat(states, hasSize(2));
 
@@ -1110,27 +1110,27 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
         //Setting up mock server to return these four customers below.
         String remoteCustomers = "[\n" +
-                "  {\n" +
-                "    \"customerFirstName\": \"Marilyn\",\n" +
-                "    \"customerLastName\": \"Monroe\",\n" +
-                "    \"id\": 0\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"customerFirstName\": \"Abraham\",\n" +
-                "    \"customerLastName\": \"Lincoln\",\n" +
-                "    \"id\": 1\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"customerFirstName\": \"Mother\",\n" +
-                "    \"customerLastName\": \"Teresa\",\n" +
-                "    \"id\": 2\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"customerFirstName\": \"John F.\",\n" +
-                "    \"customerLastName\": \"Kennedy\",\n" +
-                "    \"id\": 3\n" +
-                "  }\n" +
-                "]";
+            "  {\n" +
+            "    \"customerFirstName\": \"Marilyn\",\n" +
+            "    \"customerLastName\": \"Monroe\",\n" +
+            "    \"id\": 0\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"customerFirstName\": \"Abraham\",\n" +
+            "    \"customerLastName\": \"Lincoln\",\n" +
+            "    \"id\": 1\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"customerFirstName\": \"Mother\",\n" +
+            "    \"customerLastName\": \"Teresa\",\n" +
+            "    \"id\": 2\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"customerFirstName\": \"John F.\",\n" +
+            "    \"customerLastName\": \"Kennedy\",\n" +
+            "    \"id\": 3\n" +
+            "  }\n" +
+            "]";
         //Setting up database to return these two customers below;
         List<Customer> localCustomers = new LinkedList<>();
         localCustomers.add(new Customer("2", "Mother", "Teresa"));
