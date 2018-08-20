@@ -37,6 +37,11 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import retrofit2.http.GET;
 
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_BUSY;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_NOT_FOUND;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.RESERVATION_IN_PLACE;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.TABLE_NOT_FOUND;
+import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.TABLE_UNAVAILABLE;
 import static com.github.guilhermesgb.steward.utils.StringUtils.isEmpty;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -992,114 +997,500 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
         final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
         final Table chosenTable = new Table(2, true);
         List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        final Table tableByNumberFound = new Table(2, true);
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
+
+                    // ### EXECUTION PHASE ###
+
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
+                                }
+                            }
+                        );
+
+                    // ### VERIFICATION PHASE ###
+
+                    DateTime acceptableExpirationTimeLowerBound = DateTime.now().plusMinutes(9);
+                    DateTime acceptableExpirationTimeUpperBound = DateTime.now().plusMinutes(11);
+
+                    assertThat(states, hasSize(2));
+
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.SuccessMakingReservation.class));
+                    MakeReservationsViewState.SuccessMakingReservation success
+                        = (MakeReservationsViewState.SuccessMakingReservation) states.get(1);
+                    MakeReservationsViewState.TableChosen successSubstate = success.getFinalSubstate();
+                    assertThat(successSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(false))
+                    ));
+                    assertThat(successSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    server.shutdown();
+
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock).findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock).deleteAllForCustomer(chosenCustomer.getId());
+                    ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
+                    verify(reservationDaoMock).insert(captor.capture());
+                    Reservation reservationExpectedToBeingStoredNow = captor.getValue();
+                    assertThat(reservationExpectedToBeingStoredNow.getCustomerId(), is(chosenCustomer.getId()));
+                    assertThat(reservationExpectedToBeingStoredNow.getTableNumber(), is(chosenTable.getNumber()));
+                    DateTime expirationDate = new DateTime(reservationExpectedToBeingStoredNow.getExpirationDate());
+                    assertThat("Expiration date is lower than acceptable lower bound",
+                        expirationDate.isAfter(acceptableExpirationTimeLowerBound));
+                    assertThat("Expiration date is bigger than acceptable upper bound",
+                        expirationDate.isBefore(acceptableExpirationTimeUpperBound));
+                }
+            });
+    }
+
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_placeIdleCustomerIntoUnavailableTable_shouldYieldReservationError() throws Exception {
+        // ### SETUP PHASE ###
+
+        final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
+        final Table chosenTable = new Table(0, true);
+        List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        final Table tableByNumberFound = new Table(0, false);
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
+
+                    // ### EXECUTION PHASE ###
+
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
+                                }
+                            }
+                        );
+
+                    // ### VERIFICATION PHASE ###
+
+                    assertThat(states, hasSize(2));
+
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.ErrorMakingReservation.class));
+                    MakeReservationsViewState.ErrorMakingReservation error
+                        = (MakeReservationsViewState.ErrorMakingReservation) states.get(1);
+                    assertThat(error.getException().getCode(), is(TABLE_UNAVAILABLE));
+                    MakeReservationsViewState.TableChosen errorSubstate = error.getFinalSubstate();
+                    assertThat(errorSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(tableByNumberFound.getNumber())),
+                        hasProperty("available", equalTo(false))
+                    ));
+                    assertThat(errorSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    server.shutdown();
+
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock).findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0)).deleteAllForCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0)).insert(ArgumentMatchers.<Reservation>any());
+                }
+            });
+    }
+
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_placeBusyCustomerIntoSomeTable_shouldYieldReservationError() throws Exception {
+        // ### SETUP PHASE ###
+
+        final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
+        final Table chosenTable = new Table(1, true);
+        List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        tablesForGivenCustomerFound.add(new Table(0, false));
         Table tableByNumberFound = chosenTable;
 
         setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
-                new ConfirmReservationTestSetupCallback() {
-                    @Override
-                    public void onSetupAndPrerequisitesComplete(MockWebServer server,
-                                                                CustomerDao customerDaoMock,
-                                                                TableDao tableDaoMock,
-                                                                ReservationDao reservationDaoMock,
-                                                                MakeReservationsUseCase makeReservationsUseCase,
-                                                                MakeReservationsViewState.TableChosen state) throws Exception {
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
 
-                        // ### EXECUTION PHASE ###
+                    // ### EXECUTION PHASE ###
 
-                        ConfirmReservationAction action = new ConfirmReservationAction(state);
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
 
-                        final List<MakeReservationsViewState> states = new LinkedList<>();
-                        new IterableUtils<MakeReservationsViewState>()
-                            .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
-                                new IterableUtils.IterableCallback<MakeReservationsViewState>() {
-                                    @Override
-                                    public void doForEach(MakeReservationsViewState state) {
-                                        states.add(state);
-                                    }
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
                                 }
-                            );
+                            }
+                        );
 
-                        // ### VERIFICATION PHASE ###
+                    // ### VERIFICATION PHASE ###
 
-                        DateTime acceptableExpirationTimeLowerBound = DateTime.now().plusMinutes(9);
-                        DateTime acceptableExpirationTimeUpperBound = DateTime.now().plusMinutes(11);
+                    assertThat(states, hasSize(2));
 
-                        assertThat(states, hasSize(2));
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
 
-                        assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
-                        MakeReservationsViewState.MakingReservation loading
-                            = (MakeReservationsViewState.MakingReservation) states.get(0);
-                        MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
-                        assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
-                            hasProperty("number", equalTo(chosenTable.getNumber())),
-                            hasProperty("available", equalTo(chosenTable.isAvailable()))
-                        ));
-                        assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
-                            hasProperty("id", equalTo(chosenCustomer.getId())),
-                            hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
-                            hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
-                        ));
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.ErrorMakingReservation.class));
+                    MakeReservationsViewState.ErrorMakingReservation error
+                        = (MakeReservationsViewState.ErrorMakingReservation) states.get(1);
+                    assertThat(error.getException().getCode(), is(CUSTOMER_BUSY));
+                    MakeReservationsViewState.TableChosen errorSubstate = error.getFinalSubstate();
+                    assertThat(errorSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(errorSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
 
-                        assertThat(states.get(1), instanceOf(MakeReservationsViewState.SuccessMakingReservation.class));
-                        MakeReservationsViewState.SuccessMakingReservation success
-                            = (MakeReservationsViewState.SuccessMakingReservation) states.get(1);
-                        MakeReservationsViewState.TableChosen successSubstate = success.getFinalSubstate();
-                        assertThat(successSubstate.getChosenTable(), allOf(isA(Table.class),
-                            hasProperty("number", equalTo(chosenTable.getNumber())),
-                            hasProperty("available", equalTo(chosenTable.isAvailable()))
-                        ));
-                        assertThat(successSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
-                            hasProperty("id", equalTo(chosenCustomer.getId())),
-                            hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
-                            hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
-                        ));
+                    server.shutdown();
 
-                        //Verifying if test made expected API calls.
-                        assertThat(server.getRequestCount(), is(2));
-                        String expectedEndpoint = "/" + ApiEndpoints.class
-                            .getMethod("fetchCustomers").getAnnotation(GET.class).value();
-                        RecordedRequest request = server.takeRequest();
-                        assertThat(request.getPath(), is(expectedEndpoint));
-                        expectedEndpoint = "/" + ApiEndpoints.class
-                            .getMethod("fetchTables").getAnnotation(GET.class).value();
-                        request = server.takeRequest();
-                        assertThat(request.getPath(), is(expectedEndpoint));
-                        server.shutdown();
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock, times(0))
+                        .findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .deleteAllForCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .insert(ArgumentMatchers.<Reservation>any());
+                }
+            });
+    }
 
-                        //Verifying if test made expected database operations.
-                        verify(customerDaoMock).findAll();
-                        verify(customerDaoMock).deleteAll();
-                        List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
-                        customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
-                        customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
-                        customersExpectedToBeingStoredNow.add(new Customer("2", "Mother", "Teresa"));
-                        customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
-                        verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
-                        verify(tableDaoMock).findAll();
-                        verify(tableDaoMock).deleteAll();
-                        List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
-                        tablesExpectedToBeingStoredNow.add(new Table(0, false));
-                        tablesExpectedToBeingStoredNow.add(new Table(1, true));
-                        tablesExpectedToBeingStoredNow.add(new Table(2, true));
-                        tablesExpectedToBeingStoredNow.add(new Table(3, false));
-                        tablesExpectedToBeingStoredNow.add(new Table(4, true));
-                        verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
-                        verify(tableDaoMock).findTableByNumber(chosenTable.getNumber());
-                        ArgumentCaptor<Reservation> captor = ArgumentCaptor.forClass(Reservation.class);
-                        verify(reservationDaoMock).insert(captor.capture());
-                        Reservation reservationExpectedToBeingStoredNow = captor.getValue();
-                        assertThat(reservationExpectedToBeingStoredNow.getCustomerId(), is(chosenCustomer.getId()));
-                        assertThat(reservationExpectedToBeingStoredNow.getTableNumber(), is(chosenTable.getNumber()));
-                        DateTime expirationDate = new DateTime(reservationExpectedToBeingStoredNow.getExpirationDate());
-                        assertThat("Expiration date is lower than acceptable lower bound",
-                            expirationDate.isAfter(acceptableExpirationTimeLowerBound));
-                        assertThat("Expiration date is bigger than acceptable upper bound",
-                            expirationDate.isBefore(acceptableExpirationTimeUpperBound));
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_additionalAttemptsToConfirmReservation_shouldYieldReservationError() throws Exception {
+        // ### SETUP PHASE ###
 
-                        verify(reservationDaoMock).deleteAllForCustomer(chosenCustomer.getId());
-                        verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
-                    }
-                });
+        final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
+        final Table chosenTable = new Table(1, true);
+        List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        tablesForGivenCustomerFound.add(new Table(1, false));
+        final Table tableByNumberFound = new Table(1, false);
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
+
+                    // ### EXECUTION PHASE ###
+
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
+                                }
+                            }
+                        );
+
+                    // ### VERIFICATION PHASE ###
+
+                    assertThat(states, hasSize(2));
+
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.ErrorMakingReservation.class));
+                    MakeReservationsViewState.ErrorMakingReservation error
+                        = (MakeReservationsViewState.ErrorMakingReservation) states.get(1);
+                    assertThat(error.getException().getCode(), is(RESERVATION_IN_PLACE));
+                    MakeReservationsViewState.TableChosen errorSubstate = error.getFinalSubstate();
+                    assertThat(errorSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(tableByNumberFound.getNumber())),
+                        hasProperty("available", equalTo(false))
+                    ));
+                    assertThat(errorSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    server.shutdown();
+
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock, times(0))
+                        .findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .deleteAllForCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .insert(ArgumentMatchers.<Reservation>any());
+                }
+            });
+    }
+
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_chosenTableNonExistent_shouldYieldReservationError() throws Exception {
+        // ### SETUP PHASE ###
+
+        final Customer chosenCustomer = new Customer("2", "Mother", "Teresa");
+        final Table chosenTable = new Table(5, true);
+        List<Table> tablesForGivenCustomerFound = new LinkedList<>();
+        final Table tableByNumberFound = null;
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
+
+                    // ### EXECUTION PHASE ###
+
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
+                                }
+                            }
+                        );
+
+                    // ### VERIFICATION PHASE ###
+
+                    assertThat(states, hasSize(2));
+
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.ErrorMakingReservation.class));
+                    MakeReservationsViewState.ErrorMakingReservation error
+                        = (MakeReservationsViewState.ErrorMakingReservation) states.get(1);
+                    assertThat(error.getException().getCode(), is(TABLE_NOT_FOUND));
+                    MakeReservationsViewState.TableChosen errorSubstate = error.getFinalSubstate();
+                    assertThat(errorSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(errorSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    server.shutdown();
+
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock).findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock).findTablesForGivenCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .deleteAllForCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .insert(ArgumentMatchers.<Reservation>any());
+                }
+            });
+    }
+
+    @Test
+    @SuppressWarnings("UnnecessaryLocalVariable, ConstantConditions")
+    public void confirmReservations_chosenCustomerNonExistent_shouldYieldReservationError() throws Exception {
+        // ### SETUP PHASE ###
+
+        final Customer chosenCustomer = new Customer("4", "Donald", "Trump");
+        final Table chosenTable = new Table(1, true);
+        List<Table> tablesForGivenCustomerFound = null;
+        final Table tableByNumberFound = new Table(1, true);
+
+        setupConfirmReservationTest(chosenCustomer, chosenTable, tablesForGivenCustomerFound, tableByNumberFound,
+            new ConfirmReservationTestSetupCallback() {
+                @Override
+                public void onSetupAndPrerequisitesComplete(MockWebServer server,
+                                                            CustomerDao customerDaoMock,
+                                                            TableDao tableDaoMock,
+                                                            ReservationDao reservationDaoMock,
+                                                            MakeReservationsUseCase makeReservationsUseCase,
+                                                            MakeReservationsViewState.TableChosen state) throws Exception {
+
+                    // ### EXECUTION PHASE ###
+
+                    ConfirmReservationAction action = new ConfirmReservationAction(state);
+
+                    final List<MakeReservationsViewState> states = new LinkedList<>();
+                    new IterableUtils<MakeReservationsViewState>()
+                        .forEach(makeReservationsUseCase.confirmReservation(action).blockingIterable(),
+                            new IterableUtils.IterableCallback<MakeReservationsViewState>() {
+                                @Override
+                                public void doForEach(MakeReservationsViewState state) {
+                                    states.add(state);
+                                }
+                            }
+                        );
+
+                    // ### VERIFICATION PHASE ###
+
+                    assertThat(states, hasSize(2));
+
+                    assertThat(states.get(0), instanceOf(MakeReservationsViewState.MakingReservation.class));
+                    MakeReservationsViewState.MakingReservation loading
+                        = (MakeReservationsViewState.MakingReservation) states.get(0);
+                    MakeReservationsViewState.TableChosen loadingSubstate = loading.getFinalSubstate();
+                    assertThat(loadingSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(loadingSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    assertThat(states.get(1), instanceOf(MakeReservationsViewState.ErrorMakingReservation.class));
+                    MakeReservationsViewState.ErrorMakingReservation error
+                        = (MakeReservationsViewState.ErrorMakingReservation) states.get(1);
+                    assertThat(error.getException().getCode(), is(CUSTOMER_NOT_FOUND));
+                    MakeReservationsViewState.TableChosen errorSubstate = error.getFinalSubstate();
+                    assertThat(errorSubstate.getChosenTable(), allOf(isA(Table.class),
+                        hasProperty("number", equalTo(chosenTable.getNumber())),
+                        hasProperty("available", equalTo(chosenTable.isAvailable()))
+                    ));
+                    assertThat(errorSubstate.getFirstSubstate().getChosenCustomer(), allOf(isA(Customer.class),
+                        hasProperty("id", equalTo(chosenCustomer.getId())),
+                        hasProperty("firstName", equalTo(chosenCustomer.getFirstName())),
+                        hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
+                    ));
+
+                    server.shutdown();
+
+                    //Verifying if test made expected database operations.
+                    verify(customerDaoMock).findById(chosenCustomer.getId());
+                    verify(tableDaoMock, times(0))
+                        .findByNumber(chosenTable.getNumber());
+                    verify(reservationDaoMock, times(0))
+                        .findTablesForGivenCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .deleteAllForCustomer(chosenCustomer.getId());
+                    verify(reservationDaoMock, times(0))
+                        .insert(ArgumentMatchers.<Reservation>any());
+                }
+            });
     }
 
     private void setupConfirmReservationTest(final Customer chosenCustomer,
@@ -1203,10 +1594,24 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                     hasProperty("lastName", equalTo(chosenCustomer.getLastName()))
                 ));
 
-                when(tableDaoMock.findTableByNumber(anyInt()))
-                    .thenReturn(Single.just(tableByNumberFound));
-                when(reservationDaoMock.findTablesForGivenCustomer(anyString()))
-                    .thenReturn(Single.just(tablesForGivenCustomerFound));
+                if (tableByNumberFound != null) {
+                    when(tableDaoMock.findByNumber(anyInt()))
+                        .thenReturn(Single.just(tableByNumberFound));
+                } else {
+                    when(tableDaoMock.findByNumber(anyInt()))
+                        .thenThrow(new RuntimeException("Table not found."));
+                }
+                if (tablesForGivenCustomerFound != null) {
+                    when(customerDaoMock.findById(chosenCustomer.getId()))
+                        .thenReturn(Single.just(chosenCustomer));
+                    when(reservationDaoMock.findTablesForGivenCustomer(anyString()))
+                        .thenReturn(Single.just(tablesForGivenCustomerFound));
+                } else {
+                    when(customerDaoMock.findById(chosenCustomer.getId()))
+                        .thenThrow(new RuntimeException("Customer not found."));
+                    when(reservationDaoMock.findTablesForGivenCustomer(anyString()))
+                        .thenReturn(Single.<List<Table>>just(new LinkedList<Table>()));
+                }
 
                 callback.onSetupAndPrerequisitesComplete(server, customerDaoMock,
                     tableDaoMock, reservationDaoMock, makeReservationsUseCase, tableChosen);

@@ -22,7 +22,7 @@ public interface TableDao {
     Single<List<Table>> findAll();
 
     @Query("SELECT * FROM stand WHERE number = :number LIMIT 1")
-    Single<Table> findTableByNumber(int number);
+    Single<Table> findByNumber(int number);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Table table);

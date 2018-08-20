@@ -1,5 +1,6 @@
 package com.github.guilhermesgb.steward.mvi.reservation;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
 import com.github.guilhermesgb.steward.mvi.customer.FetchCustomersUseCase;
@@ -97,18 +98,32 @@ public class MakeReservationsUseCase extends UseCase {
             (action.getFirstSubstate(), action.getSecondSubstate(), action.getChosenTable()));
     }
 
+    @SuppressLint("CheckResult")
     public Observable<MakeReservationsViewState> confirmReservation(final ConfirmReservationAction action) {
-        final Table chosenTable = action.getFinalSubstate().getChosenTable();
-        final Customer chosenCustomer = action.getFinalSubstate().getFirstSubstate().getChosenCustomer();
+        final MakeReservationsViewState.TableChosen finalSubstate = action.getFinalSubstate();
+        final Table chosenTable = finalSubstate.getChosenTable();
+        final Customer chosenCustomer = finalSubstate.getFirstSubstate().getChosenCustomer();
         //I need to do the following things here:
-        //First, I need to check that the chosen customer still exists and is not with some active reservation.
+        //First, I need to check that the chosen customer still exists...
+        try {
+            getDatabase().customerDao().findById(chosenCustomer.getId()).blockingGet();
+        } catch (Throwable throwable) {
+            ReservationException reservationException
+                = new ReservationException(CUSTOMER_NOT_FOUND, throwable);
+            return Observable.<MakeReservationsViewState>just
+                (new MakeReservationsViewState.ErrorMakingReservation
+                    (finalSubstate, reservationException))
+                    .startWith(new MakeReservationsViewState
+                        .MakingReservation(finalSubstate));
+        }
+        // ...and then check the chosen customer does not have an active reservation.
         return getDatabase().reservationDao().findTablesForGivenCustomer(chosenCustomer.getId()).toObservable()
             .switchMap(new Function<List<Table>, ObservableSource<MakeReservationsViewState>>() {
                 @Override
                 public ObservableSource<MakeReservationsViewState> apply(List<Table> tables) {
                     if (tables.isEmpty()) {
                         //Second, I need to check that the chosen table is still available.
-                        return getDatabase().tableDao().findTableByNumber(chosenTable.getNumber()).toObservable()
+                        return getDatabase().tableDao().findByNumber(chosenTable.getNumber()).toObservable()
                             .switchMap(new Function<Table, ObservableSource<MakeReservationsViewState>>() {
                                 @Override
                                 public ObservableSource<MakeReservationsViewState> apply(Table table) {
@@ -124,13 +139,15 @@ public class MakeReservationsUseCase extends UseCase {
                                                 chosenTable.getNumber(), formatDate(DateTime.now().plusMinutes(10))));
                                             getDatabase().setTransactionSuccessful();
                                             return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState
-                                                .SuccessMakingReservation(action.getFinalSubstate()));
+                                                .SuccessMakingReservation(new MakeReservationsViewState
+                                                    .TableChosen(finalSubstate.getFirstSubstate(),
+                                                    finalSubstate.getSecondSubstate(), table)));
                                         } catch (Throwable throwable) {
                                             ReservationException reservationException
                                                 = new ReservationException(DATABASE_FAILURE, throwable);
                                             return Observable.<MakeReservationsViewState>just
                                                 (new MakeReservationsViewState.ErrorMakingReservation
-                                                    (action.getFinalSubstate(), reservationException));
+                                                    (finalSubstate, reservationException));
                                         } finally {
                                             getDatabase().endTransaction();
                                         }
@@ -139,46 +156,47 @@ public class MakeReservationsUseCase extends UseCase {
                                             = new ReservationException(TABLE_UNAVAILABLE);
                                         return Observable.<MakeReservationsViewState>just
                                             (new MakeReservationsViewState.ErrorMakingReservation
-                                                (action.getFinalSubstate(), reservationException));
+                                                (new MakeReservationsViewState.TableChosen
+                                                    (finalSubstate.getFirstSubstate(),
+                                                        finalSubstate.getSecondSubstate(),
+                                                            table), reservationException));
                                     }
-                                }
-                            }).onErrorReturn(new Function<Throwable, MakeReservationsViewState>() {
-                                @Override
-                                public MakeReservationsViewState apply(Throwable throwable) {
-                                    ReservationException reservationException
-                                        = new ReservationException(TABLE_NOT_FOUND, throwable);
-                                    return new MakeReservationsViewState.ErrorMakingReservation
-                                        (action.getFinalSubstate(), reservationException);
                                 }
                             });
                     } else {
                         //The customer already has a reservation - check whether the customer isn't already in the desired table,
                         // in which case I shall issue a friendly reminder that the customer is already placed at given table.
                         ReservationException reservationException = null;
+                        MakeReservationsViewState.ErrorMakingReservation errorState = null;
                         for (Table table : tables) {
                             if (table.getNumber() == chosenTable.getNumber()) {
                                 reservationException = new ReservationException(RESERVATION_IN_PLACE);
+                                errorState = new MakeReservationsViewState.ErrorMakingReservation
+                                    (new MakeReservationsViewState.TableChosen(finalSubstate.getFirstSubstate(),
+                                        finalSubstate.getSecondSubstate(), table), reservationException);
                                 break;
                             }
                         }
                         if (reservationException == null) {
                             reservationException = new ReservationException(CUSTOMER_BUSY);
+                            errorState = new MakeReservationsViewState.ErrorMakingReservation
+                                (finalSubstate, reservationException);
+                            errorState.setPayload(tables);
                         }
-                        return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState
-                            .ErrorMakingReservation(action.getFinalSubstate(), reservationException));
+                        return Observable.<MakeReservationsViewState>just(errorState);
                     }
                 }
             })
-            .startWith(new MakeReservationsViewState.MakingReservation(action.getFinalSubstate()))
             .onErrorReturn(new Function<Throwable, MakeReservationsViewState>() {
                 @Override
                 public MakeReservationsViewState apply(Throwable throwable) {
                     ReservationException reservationException
-                        = new ReservationException(CUSTOMER_NOT_FOUND, throwable);
+                        = new ReservationException(TABLE_NOT_FOUND, throwable);
                     return new MakeReservationsViewState.ErrorMakingReservation
-                        (action.getFinalSubstate(), reservationException);
+                        (finalSubstate, reservationException);
                 }
-            });
+            })
+            .startWith(new MakeReservationsViewState.MakingReservation(finalSubstate));
     }
 
 }

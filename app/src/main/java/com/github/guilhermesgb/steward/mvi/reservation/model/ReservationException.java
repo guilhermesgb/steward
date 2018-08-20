@@ -1,5 +1,7 @@
 package com.github.guilhermesgb.steward.mvi.reservation.model;
 
+import com.google.gson.JsonObject;
+
 public class ReservationException extends Exception {
 
     private Code code;
@@ -24,6 +26,23 @@ public class ReservationException extends Exception {
 
     public Code getCode() {
         return code;
+    }
+
+    private static JsonObject jsonizeFrom(ReservationException reservationException) {
+        if (reservationException == null) {
+            return null;
+        }
+        JsonObject json = new JsonObject();
+        json.addProperty("code", reservationException.code.toString());
+        if (reservationException.getCause() != null) {
+            json.addProperty("cause", reservationException.getCause().toString());
+        }
+        return json;
+    }
+
+    @Override
+    public String toString() {
+        return jsonizeFrom(this).toString();
     }
 
 }

@@ -21,4 +21,7 @@ public interface CustomerDao {
     @Query("SELECT * FROM customer")
     Single<List<Customer>> findAll();
 
+    @Query("SELECT * FROM customer WHERE id = :id LIMIT 1")
+    Single<Customer> findById(String id);
+
 }

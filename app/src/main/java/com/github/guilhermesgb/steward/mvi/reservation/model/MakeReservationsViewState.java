@@ -110,7 +110,7 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
 
         private final CustomerChosen firstSubstate;
         private final FetchTablesViewState.SuccessFetchingTables secondSubstate;
-        private final Table chosenTable;
+        private Table chosenTable;
 
         public TableChosen(CustomerChosen firstSubstate,
                            FetchTablesViewState.SuccessFetchingTables secondSubstate,
@@ -130,6 +130,10 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
 
         public Table getChosenTable() {
             return chosenTable;
+        }
+
+        public void setChosenTable(Table chosenTable) {
+            this.chosenTable = chosenTable;
         }
 
         @Override
@@ -241,6 +245,7 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
 
         private final TableChosen finalSubstate;
         private final ReservationException exception;
+        private Object payload;
 
         public ErrorMakingReservation(TableChosen finalSubstate, ReservationException exception) {
             this.finalSubstate = finalSubstate;
@@ -253,6 +258,14 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
 
         public ReservationException getException() {
             return exception;
+        }
+
+        public Object getPayload() {
+            return payload;
+        }
+
+        public void setPayload(Object payload) {
+            this.payload = payload;
         }
 
         @Override
