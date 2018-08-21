@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.functions.BiFunction;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import timber.log.Timber;
 
 public class FetchCustomersUseCase extends UseCase {
 
@@ -23,8 +25,8 @@ public class FetchCustomersUseCase extends UseCase {
     }
 
     public Observable<FetchCustomersViewState> doFetchCustomers(final FetchCustomersAction action) {
-        Observable<FetchCustomersViewState> fetchRemoteCustomers = mapListOfCustomersToStates
-            (action, getApi().fetchCustomers().toObservable());
+        Observable<FetchCustomersViewState> fetchRemoteCustomers
+            = mapListOfCustomersToStates(action, getApi().fetchCustomers().toObservable());
 
         final Observable<FetchCustomersViewState> fetchLocalCustomers = mapListOfCustomersToStates
             (action, getDatabase().customerDao().findAll().toObservable());
@@ -41,8 +43,16 @@ public class FetchCustomersUseCase extends UseCase {
                                 public FetchCustomersViewState apply(FetchCustomersViewState.SuccessFetchingCustomers success) {
                                     //In case we have remote customers, we discard local state in favor of remote state.
                                     //Persisting merged state in the local database.
-                                    getDatabase().customerDao().deleteAll();
-                                    getDatabase().customerDao().insertAll(success.getCustomers());
+                                    try {
+                                        getDatabase().beginTransaction();
+                                        getDatabase().reservationDao().deleteUnusedCustomers();
+                                        getDatabase().customerDao().insertAll(success.getCustomers());
+                                        getDatabase().setTransactionSuccessful();
+                                    } catch (Throwable throwable) {
+                                        Timber.wtf("THIS IS THE ISSUE: %s", throwable);
+                                    } finally {
+                                        getDatabase().endTransaction();
+                                    }
                                     return success;
                                 }
                             },
@@ -95,6 +105,12 @@ public class FetchCustomersUseCase extends UseCase {
                     operations.add(fetchRemoteCustomers);
                     return Observable.concatEager(operations)
                         .startWith(new FetchCustomersViewState.FetchingCustomers(action))
+                        .doOnNext(new Consumer<FetchCustomersViewState>() {
+                            @Override
+                            public void accept(FetchCustomersViewState state) {
+                                Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                            }
+                        })
                         .switchMap(new Function<FetchCustomersViewState, ObservableSource<FetchCustomersViewState>>() {
                             @Override
                             public ObservableSource<FetchCustomersViewState> apply(FetchCustomersViewState state) {

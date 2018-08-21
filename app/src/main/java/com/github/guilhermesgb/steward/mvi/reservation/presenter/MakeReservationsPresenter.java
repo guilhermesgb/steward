@@ -13,7 +13,7 @@ import com.github.guilhermesgb.steward.mvi.reservation.intent.ConfirmReservation
 import com.github.guilhermesgb.steward.mvi.reservation.model.MakeReservationsViewState;
 import com.github.guilhermesgb.steward.mvi.reservation.view.MakeReservationsView;
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
-import com.hannesdorfmann.mosby3.mvi.MviBasePresenter;
+import com.github.guilhermesgb.steward.utils.OnReadyPresenter;
 
 import java.util.LinkedList;
 
@@ -27,7 +27,7 @@ import io.reactivex.schedulers.Schedulers;
 
 import static com.github.guilhermesgb.steward.network.ApiResource.WILL_USE_REAL_API;
 
-public class MakeReservationsPresenter extends MviBasePresenter<MakeReservationsView, MakeReservationsViewState> {
+public class MakeReservationsPresenter extends OnReadyPresenter<MakeReservationsView, MakeReservationsViewState> {
 
     private final MakeReservationsUseCase makeReservationsUseCase;
 
@@ -124,7 +124,7 @@ public class MakeReservationsPresenter extends MviBasePresenter<MakeReservations
             @Override
             public ObservableSource<MakeReservationsViewState> apply(ConfirmReservationAction action) {
                 return makeReservationsUseCase.confirmReservation(action)
-                    .observeOn(Schedulers.io());
+                    .subscribeOn(Schedulers.io());
             }
         })
         .observeOn(AndroidSchedulers.mainThread());
@@ -144,13 +144,11 @@ public class MakeReservationsPresenter extends MviBasePresenter<MakeReservations
                         @Override
                         public void accept(MakeReservationsViewState.Initial state) {
                             view.render(state);
-                            view.render(state.getSubstate());
                         }
                     }, new Consumer<MakeReservationsViewState.CustomerChosen>() {
                         @Override
                         public void accept(MakeReservationsViewState.CustomerChosen state) {
                             view.render(state);
-                            view.render(state.getSecondSubstate());
                         }
                     }, new Consumer<MakeReservationsViewState.TableChosen>() {
                         @Override

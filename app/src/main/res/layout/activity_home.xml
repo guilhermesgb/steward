@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/contentView"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorTextPrimary">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_below="@+id/customersSearchView"
+        android:layout_above="@+id/errorFeedbackViewWrapper"
+        android:layout_marginBottom="-24dp">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/tablesView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/customersView"
+            android:layout_marginTop="-24dp"
+            android:dividerHeight="0dp"
+            android:scrollbars="none"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/customersView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:dividerHeight="0dp"
+            android:scrollbars="none"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/errorFeedbackViewWrapper"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true">
+
+        <LinearLayout
+            android:id="@+id/errorFeedbackDivider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/divider_primary_dark_alt_wrapper"
+            android:alpha="0.65"
+            tools:ignore="Orientation"
+            android:visibility="gone"/>
+
+        <View
+            android:id="@+id/errorFeedbackBackground"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/errorFeedbackDivider"
+            android:layout_alignBottom="@+id/errorFeedbackView"
+            android:background="@color/colorPrimaryDark"
+            android:alpha="0.65"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:id="@+id/errorFeedbackView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/errorFeedbackDivider"
+            android:orientation="horizontal"
+            android:gravity="start|center_vertical">
+
+            <ImageView
+                android:id="@+id/errorFeedbackIcon"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginBottom="16dp"
+                android:scaleType="centerInside"
+                android:contentDescription="@null"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/errorFeedbackText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:layout_marginLeft="16dp"
+                android:layout_marginEnd="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_marginBottom="16dp"
+                android:gravity="start"
+                android:textSize="18sp"
+                android:textColor="@color/colorTextPrimary"
+                android:lineSpacingMultiplier="0.6"
+                fontPath="fonts/Arya-Regular.ttf"
+                tools:ignore="MissingPrefix"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/customersSearchView"
+        android:layout_marginTop="-24dp"
+        android:background="@drawable/divider_primary_dark_wrapper"/>
+
+    <android.support.v7.widget.SearchView
+        android:id="@+id/customersSearchView"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_below="@+id/toolbar"
+        android:background="@color/colorPrimaryDark"/>
+
+    <include
+        layout="@layout/toolbar"
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:elevation="10dp"
+        tools:ignore="UnusedAttribute"/>
+
+</RelativeLayout>

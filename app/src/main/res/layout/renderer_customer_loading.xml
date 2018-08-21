@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignBottom="@+id/circularLoadingView"
+        android:layout_marginBottom="-48dp"
+        android:background="@color/colorPrimary"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/circularLoadingView"
+        android:layout_marginTop="-25dp"
+        android:background="@drawable/divider_primary_wrapper"/>
+
+    <RelativeLayout
+        android:id="@+id/circularLoadingView"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="48dp"
+        android:layout_centerInParent="true"
+        android:background="@color/colorPrimary">
+
+        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+            style="@style/Widget.MaterialProgressBar.ProgressBar.Large.NoPadding"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:indeterminate="false"
+            android:progress="0"
+            app:mpb_progressStyle="circular"
+            app:mpb_useIntrinsicPadding="false"
+            app:mpb_setBothDrawables="false"
+            app:mpb_progressBackgroundTint="@color/colorPrimaryDark"
+            app:mpb_progressBackgroundTintMode="src_atop"
+            app:mpb_showProgressBackground="true"
+            android:alpha="0.7"/>
+
+        <me.zhanghai.android.materialprogressbar.MaterialProgressBar
+            style="@style/Widget.MaterialProgressBar.ProgressBar.Large.NoPadding"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:indeterminate="true"
+            app:mpb_progressStyle="circular"
+            app:mpb_useIntrinsicPadding="false"
+            app:mpb_setBothDrawables="false"
+            app:mpb_indeterminateTint="@color/colorAccent"/>
+
+    </RelativeLayout>
+
+</RelativeLayout>

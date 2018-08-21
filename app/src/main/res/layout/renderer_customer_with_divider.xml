@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/customerNameText"
+        android:layout_marginTop="-24dp"
+        android:background="@drawable/divider_primary_wrapper"/>
+
+    <com.joanzapata.iconify.widget.IconTextView
+        android:id="@+id/customerNameText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="6dp"
+        android:paddingStart="8dp"
+        android:paddingLeft="8dp"
+        android:paddingEnd="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:textColor="@color/colorTextPrimary"
+        android:minLines="1"
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:background="@color/colorPrimary"
+        fontPath="fonts/Arya-Bold.ttf"
+        tools:ignore="MissingPrefix"/>
+
+    <include layout="@layout/touch_overlay"
+        android:id="@+id/touchSurface"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/customerNameText"
+        android:layout_alignBottom="@+id/customerNameText"/>
+
+</RelativeLayout>

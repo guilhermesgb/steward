@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <View
+        android:id="@+id/tableImageView"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+        android:background="@drawable/table_image_available"/>
+
+    <ImageView
+        android:id="@+id/tableAvailabilityIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_centerInParent="true"
+        android:scaleType="centerInside"
+        android:contentDescription="@null"/>
+
+    <TextView
+        android:id="@+id/tableNameText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tableImageView"
+        android:paddingTop="6dp"
+        android:paddingStart="16dp"
+        android:paddingLeft="16dp"
+        android:paddingEnd="16dp"
+        android:paddingRight="16dp"
+        android:paddingBottom="8dp"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:textColor="@color/colorPrimary"
+        android:minLines="1"
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        fontPath="fonts/Arya-Bold.ttf"
+        tools:ignore="MissingPrefix"/>
+
+    <include layout="@layout/touch_overlay"
+        android:id="@+id/touchSurface"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/tableImageView"
+        android:layout_alignBottom="@+id/tableNameText"
+        android:layout_marginTop="-16dp"/>
+
+</RelativeLayout>

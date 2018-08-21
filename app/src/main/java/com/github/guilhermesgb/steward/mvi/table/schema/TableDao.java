@@ -15,9 +15,6 @@ public interface TableDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Table> tables);
 
-    @Query("DELETE FROM stand")
-    void deleteAll();
-
     @Query("SELECT * FROM stand")
     Single<List<Table>> findAll();
 

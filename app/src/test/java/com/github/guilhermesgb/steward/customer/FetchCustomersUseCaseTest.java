@@ -8,6 +8,7 @@ import com.github.guilhermesgb.steward.mvi.customer.intent.FetchCustomersAction;
 import com.github.guilhermesgb.steward.mvi.customer.model.FetchCustomersViewState;
 import com.github.guilhermesgb.steward.mvi.customer.schema.Customer;
 import com.github.guilhermesgb.steward.mvi.customer.schema.CustomerDao;
+import com.github.guilhermesgb.steward.mvi.reservation.schema.ReservationDao;
 import com.github.guilhermesgb.steward.network.ApiEndpoints;
 import com.github.guilhermesgb.steward.utils.IterableUtils;
 import com.github.guilhermesgb.steward.utils.MockedServerUnitTest;
@@ -56,14 +57,16 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
 
                 CustomerDao customerDaoMock = mock(CustomerDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return empty list of customers as well.
                 when(customerDaoMock.findAll()).thenReturn
                     (Single.<List<Customer>>just(new LinkedList<Customer>()));
                 //Turning database writes into no-ops.
-                doNothing().when(customerDaoMock).deleteAll();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedCustomers();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -105,8 +108,8 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 verify(customerDaoMock).insertAll(new LinkedList<Customer>());
+                verify(reservationDaoMock).deleteUnusedCustomers();
             }
         });
     }
@@ -145,14 +148,16 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
 
                 CustomerDao customerDaoMock = mock(CustomerDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return empty list of customers.
                 when(customerDaoMock.findAll()).thenReturn
                     (Single.<List<Customer>>just(new LinkedList<Customer>()));
                 //Turning database writes into no-ops.
-                doNothing().when(customerDaoMock).deleteAll();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedCustomers();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -214,13 +219,13 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
                 customersExpectedToBeingStoredNow.add(new Customer("2", "Mother", "Teresa"));
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedCustomers();
             }
         });
     }
@@ -259,6 +264,7 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
 
                 CustomerDao customerDaoMock = mock(CustomerDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return these three previously stored customers.
                 List<Customer> customersExpectedToHaveBeenStoredThen = new LinkedList<>();
                 customersExpectedToHaveBeenStoredThen.add(new Customer("0", "Marilyn", "The Woman"));
@@ -267,10 +273,11 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 when(customerDaoMock.findAll()).thenReturn
                     (Single.just(customersExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(customerDaoMock).deleteAll();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedCustomers();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -347,13 +354,13 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
                 customersExpectedToBeingStoredNow.add(new Customer("2", "Mother", "Teresa"));
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedCustomers();
             }
         });
     }
@@ -371,6 +378,7 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 FetchCustomersUseCase fetchCustomersUseCase = fetchCustomersUseCase(baseUrl);
 
                 CustomerDao customerDaoMock = mock(CustomerDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return these three previously stored customers.
                 List<Customer> customersExpectedToHaveBeenStoredThen = new LinkedList<>();
                 customersExpectedToHaveBeenStoredThen.add(new Customer("0", "Marilyn", "The Woman"));
@@ -379,10 +387,11 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
                 when(customerDaoMock.findAll()).thenReturn
                     (Single.just(customersExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(customerDaoMock).deleteAll();
+                doNothing().when(reservationDaoMock).deleteUnusedCustomers();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchCustomersUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -474,9 +483,10 @@ public class FetchCustomersUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock, times(0)).deleteAll();
                 verify(customerDaoMock, times(0))
                     .insertAll(ArgumentMatchers.<Customer>anyList());
+                verify(reservationDaoMock, times(0))
+                    .deleteUnusedCustomers();
             }
         });
     }

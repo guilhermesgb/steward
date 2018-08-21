@@ -27,4 +27,10 @@ public interface ReservationDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Reservation reservation);
 
+    @Query("DELETE FROM customer WHERE id NOT IN(SELECT reservation.customerId FROM reservation)")
+    void deleteUnusedCustomers();
+
+    @Query("DELETE FROM stand WHERE number NOT IN(SELECT reservation.tableNumber FROM reservation)")
+    void deleteUnusedTables();
+
 }

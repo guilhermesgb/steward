@@ -24,7 +24,10 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import io.reactivex.schedulers.Schedulers;
+import timber.log.Timber;
 
 import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_BUSY;
 import static com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException.Code.CUSTOMER_NOT_FOUND;
@@ -75,6 +78,12 @@ public class MakeReservationsUseCase extends UseCase {
                 public MakeReservationsViewState apply(FetchCustomersViewState firstSubstate) {
                     return new MakeReservationsViewState.Initial(firstSubstate);
                 }
+            })
+            .doOnNext(new Consumer<MakeReservationsViewState>() {
+                @Override
+                public void accept(MakeReservationsViewState state) {
+                    Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                }
             });
     }
 
@@ -90,12 +99,24 @@ public class MakeReservationsUseCase extends UseCase {
                     return new MakeReservationsViewState.CustomerChosen
                         (action.getSubstate(), action.getChosenCustomer(), secondSubstate);
                 }
+            })
+            .doOnNext(new Consumer<MakeReservationsViewState>() {
+                @Override
+                public void accept(MakeReservationsViewState state) {
+                    Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                }
             });
     }
 
     public Observable<MakeReservationsViewState> chooseTable(final ChooseTableAction action) {
         return Observable.<MakeReservationsViewState>just(new MakeReservationsViewState.TableChosen
-            (action.getFirstSubstate(), action.getSecondSubstate(), action.getChosenTable()));
+            (action.getFirstSubstate(), action.getSecondSubstate(), action.getChosenTable()))
+            .doOnNext(new Consumer<MakeReservationsViewState>() {
+                @Override
+                public void accept(MakeReservationsViewState state) {
+                    Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                }
+            });
     }
 
     @SuppressLint("CheckResult")
@@ -106,7 +127,8 @@ public class MakeReservationsUseCase extends UseCase {
         //I need to do the following things here:
         //First, I need to check that the chosen customer still exists...
         try {
-            getDatabase().customerDao().findById(chosenCustomer.getId()).blockingGet();
+            getDatabase().customerDao().findById(chosenCustomer.getId())
+                .subscribeOn(Schedulers.io()).blockingGet();
         } catch (Throwable throwable) {
             ReservationException reservationException
                 = new ReservationException(CUSTOMER_NOT_FOUND, throwable);
@@ -196,7 +218,13 @@ public class MakeReservationsUseCase extends UseCase {
                         (finalSubstate, reservationException);
                 }
             })
-            .startWith(new MakeReservationsViewState.MakingReservation(finalSubstate));
+            .startWith(new MakeReservationsViewState.MakingReservation(finalSubstate))
+            .doOnNext(new Consumer<MakeReservationsViewState>() {
+                @Override
+                public void accept(MakeReservationsViewState state) {
+                    Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                }
+            });
     }
 
 }

@@ -3,6 +3,7 @@ package com.github.guilhermesgb.steward.table;
 import android.content.Context;
 
 import com.github.guilhermesgb.steward.database.DatabaseResource;
+import com.github.guilhermesgb.steward.mvi.reservation.schema.ReservationDao;
 import com.github.guilhermesgb.steward.mvi.table.FetchTablesUseCase;
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
@@ -56,14 +57,16 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 FetchTablesUseCase fetchTablesUseCase = fetchTablesUseCase(baseUrl);
 
                 TableDao tableDaoMock = mock(TableDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return empty list of tables as well.
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.<List<Table>>just(new LinkedList<Table>()));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -105,8 +108,8 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 verify(tableDaoMock).insertAll(new LinkedList<Table>());
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -124,14 +127,16 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 FetchTablesUseCase fetchTablesUseCase = fetchTablesUseCase(baseUrl);
 
                 TableDao tableDaoMock = mock(TableDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return empty list of tables.
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.<List<Table>>just(new LinkedList<Table>()));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -189,13 +194,13 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, true));
                 tablesExpectedToBeingStoredNow.add(new Table(1, false));
                 tablesExpectedToBeingStoredNow.add(new Table(2, false));
                 tablesExpectedToBeingStoredNow.add(new Table(3, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -212,6 +217,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
             public void onMockServerConfigured(MockWebServer server, String baseUrl) throws Exception {
                 FetchTablesUseCase fetchTablesUseCase = fetchTablesUseCase(baseUrl);
 
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 TableDao tableDaoMock = mock(TableDao.class);
                 //Mocking database to return these four previously stored tables.
                 List<Table> tablesExpectedToHaveBeenStoredThen = new LinkedList<>();
@@ -222,10 +228,11 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -299,13 +306,13 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, false));
                 tablesExpectedToBeingStoredNow.add(new Table(1, false));
                 tablesExpectedToBeingStoredNow.add(new Table(2, true));
                 tablesExpectedToBeingStoredNow.add(new Table(3, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -323,6 +330,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 FetchTablesUseCase fetchTablesUseCase = fetchTablesUseCase(baseUrl);
 
                 TableDao tableDaoMock = mock(TableDao.class);
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 //Mocking database to return these four previously stored tables.
                 List<Table> tablesExpectedToHaveBeenStoredThen = new LinkedList<>();
                 tablesExpectedToHaveBeenStoredThen.add(new Table(0, false));
@@ -332,10 +340,11 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -417,7 +426,6 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, false));
                 tablesExpectedToBeingStoredNow.add(new Table(1, false));
@@ -426,6 +434,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToBeingStoredNow.add(new Table(4, false));
                 tablesExpectedToBeingStoredNow.add(new Table(5, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -442,6 +451,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
             public void onMockServerConfigured(MockWebServer server, String baseUrl) throws Exception {
                 FetchTablesUseCase fetchTablesUseCase = fetchTablesUseCase(baseUrl);
 
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
                 TableDao tableDaoMock = mock(TableDao.class);
                 //Mocking database to return these six previously stored tables.
                 List<Table> tablesExpectedToHaveBeenStoredThen = new LinkedList<>();
@@ -454,10 +464,11 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -547,7 +558,6 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, false));
                 tablesExpectedToBeingStoredNow.add(new Table(1, false));
@@ -556,6 +566,7 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToBeingStoredNow.add(new Table(4, false));
                 tablesExpectedToBeingStoredNow.add(new Table(5, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -584,10 +595,12 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
                 when(tableDaoMock.findAll()).thenReturn
                     (Single.just(tablesExpectedToHaveBeenStoredThen));
                 //Turning database writes into no-ops.
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
+                ReservationDao reservationDaoMock = mock(ReservationDao.class);
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);
+                when(databaseMock.reservationDao()).thenReturn(reservationDaoMock);
                 doReturn(databaseMock).when(fetchTablesUseCase).getDatabase();
 
                 // ### EXECUTION PHASE ###
@@ -706,9 +719,9 @@ public class FetchTablesUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock, times(0)).deleteAll();
                 verify(tableDaoMock, times(0))
                     .insertAll(ArgumentMatchers.<Table>anyList());
+                verify(reservationDaoMock, times(0)).deleteUnusedTables();
             }
         });
     }

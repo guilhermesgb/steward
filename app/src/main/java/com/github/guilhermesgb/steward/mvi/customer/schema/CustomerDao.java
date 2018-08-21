@@ -15,9 +15,6 @@ public interface CustomerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Customer> customers);
 
-    @Query("DELETE FROM customer")
-    void deleteAll();
-
     @Query("SELECT * FROM customer")
     Single<List<Customer>> findAll();
 

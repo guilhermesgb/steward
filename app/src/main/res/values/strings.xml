@@ -1,3 +1,16 @@
 <resources>
+
     <string name="app_name">Steward</string>
+    <string name="format_customer_name">{fa-s-user} %1$s</string>
+    <string name="format_table_name">Table #%1$02d</string>
+    <string name="label_confirm_reservation">Confirm?</string>
+    <string name="format_error_customer_not_found">Customer \'%1$s\' not found.</string>
+    <string name="format_error_reservation_in_place">Reservation for \'%1$s\' at Table #%2$02d already in place.</string>
+    <string name="format_error_customer_busy">Customer \'%1$s\' is already placed at another Table (#%2$02d).</string>
+    <string name="format_error_table_not_found">Table #%1$02d not found.</string>
+    <string name="format_error_table_unavailable">Table #%1$02d is unavailable at the moment.</string>
+    <string name="format_error_database_confirm_reservation">Could not confirm reservation due to a database error.</string>
+    <string name="format_error_unknown_confirm_reservation">Could not confirm reservation.</string>
+    <string name="format_success_reservation_in_place">Successful reservation for \'%1$s\' at Table #%2$02d.</string>
+
 </resources>

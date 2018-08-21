@@ -182,7 +182,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
@@ -190,8 +189,9 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 verify(tableDaoMock).insertAll(new LinkedList<Table>());
+                verify(reservationDaoMock).deleteUnusedCustomers();
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -307,14 +307,14 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 verify(tableDaoMock).insertAll(new LinkedList<Table>());
+                verify(reservationDaoMock).deleteUnusedCustomers();
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -504,7 +504,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
@@ -512,7 +511,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, false));
                 tablesExpectedToBeingStoredNow.add(new Table(1, true));
@@ -520,6 +518,8 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToBeingStoredNow.add(new Table(3, false));
                 tablesExpectedToBeingStoredNow.add(new Table(4, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedCustomers();
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -709,7 +709,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
@@ -717,7 +716,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock).deleteAll();
                 List<Table> tablesExpectedToBeingStoredNow = new LinkedList<>();
                 tablesExpectedToBeingStoredNow.add(new Table(0, false));
                 tablesExpectedToBeingStoredNow.add(new Table(1, true));
@@ -725,6 +723,8 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 tablesExpectedToBeingStoredNow.add(new Table(3, false));
                 tablesExpectedToBeingStoredNow.add(new Table(4, true));
                 verify(tableDaoMock).insertAll(tablesExpectedToBeingStoredNow);
+                verify(reservationDaoMock).deleteUnusedCustomers();
+                verify(reservationDaoMock).deleteUnusedTables();
             }
         });
     }
@@ -974,7 +974,6 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
 
                 //Verifying if test made expected database operations.
                 verify(customerDaoMock).findAll();
-                verify(customerDaoMock).deleteAll();
                 List<Customer> customersExpectedToBeingStoredNow = new LinkedList<>();
                 customersExpectedToBeingStoredNow.add(new Customer("0", "Marilyn", "Monroe"));
                 customersExpectedToBeingStoredNow.add(new Customer("1", "Abraham", "Lincoln"));
@@ -982,9 +981,11 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 customersExpectedToBeingStoredNow.add(new Customer("3", "John F.", "Kennedy"));
                 verify(customerDaoMock).insertAll(customersExpectedToBeingStoredNow);
                 verify(tableDaoMock).findAll();
-                verify(tableDaoMock, times(0)).deleteAll();
                 verify(tableDaoMock, times(0))
                     .insertAll(ArgumentMatchers.<Table>anyList());
+                verify(reservationDaoMock).deleteUnusedCustomers();
+                verify(reservationDaoMock, times(0))
+                    .deleteUnusedTables();
             }
         });
     }
@@ -1650,12 +1651,12 @@ public class MakeReservationsUseCaseTest extends MockedServerUnitTest {
                 ReservationDao reservationDaoMock = mock(ReservationDao.class);
 
                 //Turning database writes into no-ops.
-                doNothing().when(customerDaoMock).deleteAll();
                 doNothing().when(customerDaoMock).insertAll(ArgumentMatchers.<Customer>anyList());
-                doNothing().when(tableDaoMock).deleteAll();
                 doNothing().when(tableDaoMock).insertAll(ArgumentMatchers.<Table>anyList());
                 doNothing().when(reservationDaoMock).deleteAllForCustomer(anyString());
                 doNothing().when(reservationDaoMock).insert(ArgumentMatchers.<Reservation>any());
+                doNothing().when(reservationDaoMock).deleteUnusedCustomers();
+                doNothing().when(reservationDaoMock).deleteUnusedTables();
                 DatabaseResource databaseMock = mock(DatabaseResource.class);
                 when(databaseMock.customerDao()).thenReturn(customerDaoMock);
                 when(databaseMock.tableDao()).thenReturn(tableDaoMock);

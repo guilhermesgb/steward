@@ -7,7 +7,6 @@ import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.mvi.table.schema.Tables;
 import com.github.guilhermesgb.steward.utils.UseCase;
-import com.github.guilhermesgb.steward.utils.ViewStateOption;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -16,7 +15,9 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Observable;
 import io.reactivex.ObservableSource;
 import io.reactivex.functions.BiFunction;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
+import timber.log.Timber;
 
 public class FetchTablesUseCase extends UseCase {
 
@@ -25,8 +26,8 @@ public class FetchTablesUseCase extends UseCase {
     }
 
     public Observable<FetchTablesViewState> doFetchTables(final FetchTablesAction action) {
-        Observable<FetchTablesViewState> fetchRemoteTables = mapListOfTablesToStates
-            (action, getApi().fetchTables()
+        Observable<FetchTablesViewState> fetchRemoteTables
+            = mapListOfTablesToStates(action, getApi().fetchTables()
                 .map(new Function<Tables, List<Table>>() {
                     @Override
                     public List<Table> apply(Tables tables) {
@@ -69,8 +70,14 @@ public class FetchTablesUseCase extends UseCase {
                                         success = success.setTables(localTables);
                                     }
                                     //Persisting merged state in the local database.
-                                    getDatabase().tableDao().deleteAll();
-                                    getDatabase().tableDao().insertAll(success.getTables());
+                                    try {
+                                        getDatabase().beginTransaction();
+                                        getDatabase().reservationDao().deleteUnusedTables();
+                                        getDatabase().tableDao().insertAll(success.getTables());
+                                        getDatabase().setTransactionSuccessful();
+                                    } finally {
+                                        getDatabase().endTransaction();
+                                    }
                                     return success;
                                 }
                             },
@@ -123,6 +130,12 @@ public class FetchTablesUseCase extends UseCase {
                     operations.add(fetchRemoteTables);
                     return Observable.concatEager(operations)
                         .startWith(new FetchTablesViewState.FetchingTables(action))
+                        .doOnNext(new Consumer<FetchTablesViewState>() {
+                            @Override
+                            public void accept(FetchTablesViewState state) {
+                                Timber.d("PASSING FOLLOWING STATE DOWNSTREAM: %s.", state);
+                            }
+                        })
                         .switchMap(new Function<FetchTablesViewState, ObservableSource<FetchTablesViewState>>() {
                             @Override
                             public ObservableSource<FetchTablesViewState> apply(FetchTablesViewState state) {
@@ -148,6 +161,7 @@ public class FetchTablesUseCase extends UseCase {
                 }
             });
     }
+
 
     private Observable<FetchTablesViewState> mapListOfTablesToStates(final FetchTablesAction action,
                                                                      Observable<List<Table>> tables) {

@@ -92,7 +92,7 @@ public class Table implements Serializable, Parcelable {
         if (o == null || getClass() != o.getClass()) return false;
         Table table = (Table) o;
         return number == table.number &&
-                available == table.available;
+            available == table.available;
     }
 
     @Override

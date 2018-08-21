@@ -15,6 +15,8 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
         MakeReservationsViewState.MakingReservation, MakeReservationsViewState.SuccessMakingReservation,
         MakeReservationsViewState.ErrorMakingReservation> {
 
+    int getPrecedenceValue();
+
     final class Initial extends ViewStateOption implements MakeReservationsViewState {
 
         private final FetchCustomersViewState substate;
@@ -50,6 +52,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
         @Override
         protected String getOptionName() {
             return "MakeReservationsViewState.Initial";
+        }
+
+        @Override
+        public int getPrecedenceValue() {
+            return 0;
         }
 
     }
@@ -102,6 +109,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
         @Override
         protected String getOptionName() {
             return "MakeReservationsViewState.CustomerChosen";
+        }
+
+        @Override
+        public int getPrecedenceValue() {
+            return 1;
         }
 
     }
@@ -161,6 +173,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
             return "MakeReservationsViewState.TableChosen";
         }
 
+        @Override
+        public int getPrecedenceValue() {
+            return 2;
+        }
+
     }
 
     final class MakingReservation extends ViewStateOption implements MakeReservationsViewState {
@@ -200,6 +217,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
             return "MakeReservationsViewState.MakingReservation";
         }
 
+        @Override
+        public int getPrecedenceValue() {
+            return 3;
+        }
+
     }
 
     final class SuccessMakingReservation extends ViewStateOption implements MakeReservationsViewState {
@@ -237,6 +259,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
         @Override
         protected String getOptionName() {
             return "MakeReservationsViewState.SuccessMakingReservation";
+        }
+
+        @Override
+        public int getPrecedenceValue() {
+            return 4;
         }
 
     }
@@ -291,6 +318,11 @@ public interface MakeReservationsViewState extends Union6<MakeReservationsViewSt
         @Override
         protected String getOptionName() {
             return "MakeReservationsViewState.ErrorMakingReservation";
+        }
+
+        @Override
+        public int getPrecedenceValue() {
+            return 5;
         }
 
     }
