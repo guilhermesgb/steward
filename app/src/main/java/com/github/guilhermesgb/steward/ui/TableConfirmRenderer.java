@@ -51,9 +51,11 @@ public class TableConfirmRenderer extends Renderer<TableItemView> {
         touchSurface.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                touchSurface.setEnabled(false);
                 getContent().getCallback().onTableChosen(table);
             }
         });
+        touchSurface.setEnabled(true);
     }
 
 }

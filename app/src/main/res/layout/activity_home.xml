@@ -9,6 +9,7 @@
     android:background="@color/colorTextPrimary">
 
     <RelativeLayout
+        android:id="@+id/recyclerViews"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -44,8 +45,7 @@
             android:id="@+id/errorFeedbackDivider"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/divider_primary_dark_alt_wrapper"
-            android:alpha="0.65"
+            android:background="@drawable/divider_primary_darker_wrapper"
             tools:ignore="Orientation"
             android:visibility="gone"/>
 
@@ -55,8 +55,7 @@
             android:layout_height="wrap_content"
             android:layout_below="@+id/errorFeedbackDivider"
             android:layout_alignBottom="@+id/errorFeedbackView"
-            android:background="@color/colorPrimaryDark"
-            android:alpha="0.65"
+            android:background="@color/colorPrimaryDarker"
             android:visibility="gone"/>
 
         <LinearLayout

@@ -3,6 +3,7 @@ package com.github.guilhermesgb.steward.ui;
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.transition.TransitionManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.widget.GridLayoutManager;
@@ -45,7 +46,6 @@ import butterknife.ButterKnife;
 import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.PublishSubject;
-import timber.log.Timber;
 import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 import static android.view.View.GONE;
@@ -65,9 +65,10 @@ public class HomeActivity
 
     @BindView(R.id.contentView) ViewGroup contentView;
     @BindView(R.id.toolbarView) Toolbar toolbarView;
+    @BindView(R.id.recyclerViews) ViewGroup recyclerViews;
     @BindView(R.id.customersView) RecyclerView customersView;
     @BindView(R.id.tablesView) RecyclerView tablesView;
-    @BindView(R.id.errorFeedbackViewWrapper) View errorFeedbackViewWrapper;
+    @BindView(R.id.errorFeedbackViewWrapper) ViewGroup errorFeedbackViewWrapper;
     @BindView(R.id.errorFeedbackDivider) View errorFeedbackDivider;
     @BindView(R.id.errorFeedbackBackground) View errorFeedbackBackground;
     @BindView(R.id.errorFeedbackView) View errorFeedbackView;
@@ -315,7 +316,6 @@ public class HomeActivity
             lastRenderedState = state;
         } else if (state.getPrecedenceValue() >= lastRenderedState.getPrecedenceValue()) {
             lastRenderedState = state;
-            Timber.wtf("lastRenderedState updated to %s", state);
         }
     }
 
@@ -395,8 +395,15 @@ public class HomeActivity
                 new CustomerItemView.CustomerChosenCallback() {
                     @Override
                     public void onCustomerChosen(Customer customer) {
-                        chooseCustomerActions.onNext(new ChooseCustomerAction
-                            (substate, customer));
+                        if (chosenCustomer == null) {
+                            chooseCustomerActions.onNext
+                                (new ChooseCustomerAction
+                                    (substate, customer));
+                        } else {
+                            lastRenderedState = null;
+                            fetchCustomersActions.onNext
+                                (new FetchCustomersAction());
+                        }
                     }
                 }
             ) {
@@ -457,6 +464,7 @@ public class HomeActivity
                 return;
             }
         }
+        TransitionManager.beginDelayedTransition(recyclerViews);
         List<Table> tables = substate.getTables();
         if (chosenTable != null) {
             tables = Collections.singletonList(chosenTable);
@@ -467,8 +475,14 @@ public class HomeActivity
                 new TableItemView.TableChosenCallback() {
                     @Override
                     public void onTableChosen(Table table) {
-                        chooseTableActions.onNext(new ChooseTableAction
-                            (previousState, substate, table));
+                        if (chosenTable == null) {
+                            chooseTableActions.onNext(new ChooseTableAction
+                                (previousState, substate, table));
+                        } else {
+                            lastRenderedState = null;
+                            fetchTablesActions.onNext
+                                (new FetchTablesAction());
+                        }
                     }
                 }
             ) {
@@ -505,10 +519,12 @@ public class HomeActivity
     }
 
     private void hideErrorFeedbackViewCompletely() {
+        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackViewWrapper.setVisibility(GONE);
     }
 
     private void hideErrorFeedbackViewPartially() {
+        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackDivider.setVisibility(VISIBLE);
         errorFeedbackBackground.setVisibility(GONE);
         errorFeedbackIcon.setVisibility(GONE);
@@ -518,6 +534,7 @@ public class HomeActivity
     }
 
     private void showFeedbackView(String message, boolean isError) {
+        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackDivider.setVisibility(VISIBLE);
         errorFeedbackBackground.setVisibility(VISIBLE);
         if (isError) {

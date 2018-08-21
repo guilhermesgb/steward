@@ -40,9 +40,11 @@ public class CustomerRenderer extends Renderer<CustomerItemView> {
         touchSurface.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                touchSurface.setEnabled(false);
                 getContent().getCallback().onCustomerChosen(customer);
             }
         });
+        touchSurface.setEnabled(true);
     }
 
 }
