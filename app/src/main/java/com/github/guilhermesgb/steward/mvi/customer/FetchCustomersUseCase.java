@@ -48,8 +48,6 @@ public class FetchCustomersUseCase extends UseCase {
                                         getDatabase().reservationDao().deleteUnusedCustomers();
                                         getDatabase().customerDao().insertAll(success.getCustomers());
                                         getDatabase().setTransactionSuccessful();
-                                    } catch (Throwable throwable) {
-                                        Timber.wtf("THIS IS THE ISSUE: %s", throwable);
                                     } finally {
                                         getDatabase().endTransaction();
                                     }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/contentView"
     android:orientation="vertical"
@@ -24,14 +25,16 @@
             android:layout_below="@+id/customersView"
             android:layout_marginTop="-24dp"
             android:dividerHeight="0dp"
-            android:scrollbars="none"/>
+            android:scrollbars="none"
+            android:animateLayoutChanges="false"/>
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/customersView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:dividerHeight="0dp"
-            android:scrollbars="none"/>
+            android:scrollbars="none"
+            android:animateLayoutChanges="false"/>
 
     </RelativeLayout>
 
@@ -107,11 +110,18 @@
         android:background="@drawable/divider_primary_dark_wrapper"/>
 
     <android.support.v7.widget.SearchView
+        android:theme="@style/SearchBar"
         android:id="@+id/customersSearchView"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:layout_below="@+id/toolbar"
-        android:background="@color/colorPrimaryDark"/>
+        android:paddingStart="16dp"
+        android:paddingLeft="16dp"
+        android:paddingEnd="16dp"
+        android:paddingRight="16dp"
+        android:background="@color/colorPrimaryDark"
+        app:queryHint="@string/label_search_for_customers"
+        app:iconifiedByDefault="false"/>
 
     <include
         layout="@layout/toolbar"

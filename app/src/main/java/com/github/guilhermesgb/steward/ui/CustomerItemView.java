@@ -27,4 +27,9 @@ public abstract class CustomerItemView implements RendererItemView {
         return callback;
     }
 
+    @Override
+    public String toString() {
+        return customer.getFirstName() + " " + customer.getLastName();
+    }
+
 }

@@ -9,9 +9,12 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.SearchView;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -39,6 +42,7 @@ import com.pedrogomez.renderers.RVRendererAdapter;
 import com.pedrogomez.renderers.RendererBuilder;
 
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import butterknife.BindView;
@@ -65,6 +69,7 @@ public class HomeActivity
 
     @BindView(R.id.contentView) ViewGroup contentView;
     @BindView(R.id.toolbarView) Toolbar toolbarView;
+    @BindView(R.id.customersSearchView) SearchView customersSearchView;
     @BindView(R.id.recyclerViews) ViewGroup recyclerViews;
     @BindView(R.id.customersView) RecyclerView customersView;
     @BindView(R.id.tablesView) RecyclerView tablesView;
@@ -77,6 +82,8 @@ public class HomeActivity
 
     private RVRendererAdapter<RendererItemView> customersItemViewsAdapter;
     private ListAdapteeCollection<RendererItemView> customersItemViews = new ListAdapteeCollection<>();
+    private ArrayAdapter<CustomerItemView> customersSearchItemViewsAdapter;
+    private List<CustomerItemView> customersSearchItemViews = new LinkedList<>();
     private RVRendererAdapter<RendererItemView> tablesItemViewsAdapter;
     private ListAdapteeCollection<RendererItemView> tablesItemViews = new ListAdapteeCollection<>();
 
@@ -135,8 +142,48 @@ public class HomeActivity
             .bind(RENDERER_ITEM_VIEW_CODE_TABLE_CONFIRM, new TableConfirmRenderer())
             .build();
         tablesItemViewsAdapter = new RVRendererAdapter<>(tablesRendererBuilder, tablesItemViews);
-        tablesView.setLayoutManager(new GridLayoutManager(this, 2));
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 2);
+        gridLayoutManager.setItemPrefetchEnabled(false);
+        tablesView.setLayoutManager(gridLayoutManager);
         tablesView.setAdapter(tablesItemViewsAdapter);
+        SearchViewHolder searchViewHolder = new SearchViewHolder();
+        ButterKnife.bind(searchViewHolder, customersSearchView);
+        if (searchViewHolder.searchIcon != null) {
+            searchViewHolder.searchIcon.setImageDrawable
+                (new IconDrawable(this, FontAwesomeSolid.fa_s_search)
+                    .colorRes(android.R.color.white)
+                    .actionBarSize());
+        }
+        if (searchViewHolder.closeIcon != null) {
+            searchViewHolder.closeIcon.setImageDrawable
+                (new IconDrawable(this, FontAwesomeSolid.fa_s_times_circle)
+                    .colorRes(android.R.color.white)
+                    .actionBarSize());
+        }
+        customersSearchView.setQuery("", false);
+        customersSearchView.setIconified(true);
+        customersSearchItemViewsAdapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_dropdown_item_1line, customersSearchItemViews);
+        searchViewHolder.searchAutoComplete.setAdapter(customersSearchItemViewsAdapter);
+        searchViewHolder.searchAutoComplete.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                final Customer customer = ((CustomerItemView) parent
+                    .getItemAtPosition(position)).getCustomer();
+                final List<Customer> cachedCustomers = new LinkedList<>();
+                for (int i=0; i<parent.getCount(); i++) {
+                    cachedCustomers.add(((CustomerItemView) parent
+                        .getItemAtPosition(i)).getCustomer());
+                }
+                customersSearchView.setQuery(customer.getFirstName()
+                    + " " + customer.getLastName(), false);
+                lastRenderedState = null;
+                chooseCustomerActions.onNext(new ChooseCustomerAction
+                    (new FetchCustomersViewState.SuccessFetchingCustomers
+                        (new FetchCustomersAction(), cachedCustomers),
+                            customer));
+            }
+        });
     }
 
     @NonNull
@@ -233,7 +280,6 @@ public class HomeActivity
 
     @Override
     public void render(final MakeReservationsViewState state) {
-//        TransitionManager.beginDelayedTransition(contentView);
         state.continued(new Consumer<MakeReservationsViewState.Initial>() {
             @Override
             public void accept(MakeReservationsViewState.Initial initial) {
@@ -338,7 +384,18 @@ public class HomeActivity
 
     private void renderCustomers(final FetchCustomersViewState.SuccessFetchingCustomers substate,
                                  final Customer chosenCustomer) {
-        //FIXME add customers to an adapter that shall feed search suggestions.
+        customersSearchItemViews.clear();
+        for (Customer customer : substate.getCustomers()) {
+            customersSearchItemViews.add(new CustomerItemView
+                (customer, null) {
+                    @Override
+                    public int getItemViewCode() {
+                        return RENDERER_ITEM_VIEW_CODE_CUSTOMER;
+                    }
+                }
+            );
+        }
+        customersSearchItemViewsAdapter.notifyDataSetChanged();
         if (lastRenderedState != null && chosenCustomer == null) {
             lastRenderedState.continued(null, new Consumer<MakeReservationsViewState.CustomerChosen>() {
                 @Override
@@ -383,6 +440,7 @@ public class HomeActivity
         });
         if (chosenCustomer != null) {
             customers = Collections.singletonList(chosenCustomer);
+            customersSearchView.setQuery("", false);
         }
         for (int i=0; i<customers.size(); i++) {
             final int rendererItemViewCode;
@@ -412,6 +470,23 @@ public class HomeActivity
                     return rendererItemViewCode;
                 }
             });
+        }
+        if (customers.isEmpty()) {
+            customersItemViews.add(new CustomerItemView(new Customer("-1",
+                getString(R.string.label_no_customers_found), ""),
+                    new CustomerItemView.CustomerChosenCallback() {
+                        @Override
+                        public void onCustomerChosen(Customer customer) {
+                            fetchCustomersActions.onNext
+                                (new FetchCustomersAction());
+                        }
+                    }
+                ) {
+                    @Override
+                    public int getItemViewCode() {
+                        return RENDERER_ITEM_VIEW_CODE_CUSTOMER_WITH_DIVIDER;
+                    }
+                });
         }
         if (chosenCustomer != null) {
             if (errorFeedbackViewWrapper.getVisibility() == GONE) {
@@ -464,11 +539,12 @@ public class HomeActivity
                 return;
             }
         }
-        TransitionManager.beginDelayedTransition(recyclerViews);
+        TransitionManager.beginDelayedTransition(tablesView);
         List<Table> tables = substate.getTables();
         if (chosenTable != null) {
             tables = Collections.singletonList(chosenTable);
         }
+        int amountBeforeThisIteration = tablesItemViews.size();
         tablesItemViews.clear();
         for (Table table : tables) {
             tablesItemViews.add(new TableItemView(table,
@@ -507,6 +583,7 @@ public class HomeActivity
                     return RENDERER_ITEM_VIEW_CODE_TABLE_CONFIRM;
                 }
             });
+            tablesItemViewsAdapter.notifyItemMoved(chosenTable.getNumber(), 0);
         } else {
             tablesItemViews.add(new RendererItemView() {
                 @Override
@@ -515,16 +592,35 @@ public class HomeActivity
                 }
             });
         }
-        tablesItemViewsAdapter.notifyDataSetChanged();
+        if (tables.isEmpty()) {
+            showFeedbackView(getString(R.string.label_no_tables_found), true);
+        } else {
+            if (errorFeedbackViewWrapper.getVisibility() == GONE) {
+                hideErrorFeedbackViewPartially();
+            }
+        }
+        if (chosenTable != null) {
+            for (int i=0; i<tablesItemViews.size(); i++) {
+                RendererItemView rendererItemView = tablesItemViews.get(i);
+                if (rendererItemView instanceof TableItemView) {
+                    if (((TableItemView) rendererItemView).getTable().getNumber() == chosenTable.getNumber()) {
+                        tablesItemViewsAdapter.notifyItemRangeRemoved(1, i);
+                        tablesItemViewsAdapter.notifyItemChanged(i);
+                        tablesItemViewsAdapter.notifyItemRangeRemoved(i + 1, amountBeforeThisIteration);
+                        break;
+                    }
+                }
+            }
+        } else {
+            tablesItemViewsAdapter.notifyDataSetChanged();
+        }
     }
 
     private void hideErrorFeedbackViewCompletely() {
-        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackViewWrapper.setVisibility(GONE);
     }
 
     private void hideErrorFeedbackViewPartially() {
-        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackDivider.setVisibility(VISIBLE);
         errorFeedbackBackground.setVisibility(GONE);
         errorFeedbackIcon.setVisibility(GONE);
@@ -534,7 +630,6 @@ public class HomeActivity
     }
 
     private void showFeedbackView(String message, boolean isError) {
-        TransitionManager.beginDelayedTransition(errorFeedbackViewWrapper);
         errorFeedbackDivider.setVisibility(VISIBLE);
         errorFeedbackBackground.setVisibility(VISIBLE);
         if (isError) {

@@ -1,7 +1,10 @@
 <resources>
 
     <string name="app_name">Steward</string>
+    <string name="label_search_for_customers">Search customers…</string>
+    <string name="label_no_customers_found">No customers found.</string>
     <string name="format_customer_name">{fa-s-user} %1$s</string>
+    <string name="label_no_tables_found">No tables found.</string>
     <string name="format_table_name">Table #%1$02d</string>
     <string name="label_confirm_reservation">Confirm?</string>
     <string name="format_error_customer_not_found">Customer \'%1$s\' not found.</string>
