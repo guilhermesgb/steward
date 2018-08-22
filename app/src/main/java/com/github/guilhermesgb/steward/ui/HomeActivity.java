@@ -32,7 +32,6 @@ import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.utils.Argument;
-import com.github.guilhermesgb.steward.utils.ArgumentType;
 import com.github.guilhermesgb.steward.utils.ArgumentsParsedCallback;
 import com.github.guilhermesgb.steward.utils.ArgumentsParserMviActivity;
 import com.github.guilhermesgb.steward.utils.BasicPrototypeRenderer;
@@ -180,7 +179,7 @@ public class HomeActivity
         customersSearchView.setQuery("", false);
         customersSearchView.setIconified(true);
         customersSearchItemViewsAdapter = new ArrayAdapter<>(this,
-            android.R.layout.simple_dropdown_item_1line, customersSearchItemViews);
+            R.layout.adapter_customer, customersSearchItemViews);
         searchViewHolder.searchAutoComplete.setAdapter(customersSearchItemViewsAdapter);
         searchViewHolder.searchAutoComplete.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override

@@ -24,7 +24,7 @@
         android:paddingRight="16dp"
         android:paddingBottom="8dp"
         android:gravity="center"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textColor="@color/colorTextPrimary"
         android:minLines="1"
         android:singleLine="true"
