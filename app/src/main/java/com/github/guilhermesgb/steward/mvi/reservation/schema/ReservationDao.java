@@ -1,6 +1,7 @@
 package com.github.guilhermesgb.steward.mvi.reservation.schema;
 
 import android.arch.persistence.room.Dao;
+import android.arch.persistence.room.Delete;
 import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.OnConflictStrategy;
 import android.arch.persistence.room.Query;
@@ -32,5 +33,8 @@ public interface ReservationDao {
 
     @Query("DELETE FROM stand WHERE number NOT IN(SELECT reservation.tableNumber FROM reservation)")
     void deleteUnusedTables();
+
+    @Query("DELETE FROM reservation")
+    void deleteAll();
 
 }

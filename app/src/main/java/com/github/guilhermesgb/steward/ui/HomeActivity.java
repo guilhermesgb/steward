@@ -31,11 +31,14 @@ import com.github.guilhermesgb.steward.mvi.reservation.view.MakeReservationsView
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
+import com.github.guilhermesgb.steward.utils.Argument;
+import com.github.guilhermesgb.steward.utils.ArgumentType;
+import com.github.guilhermesgb.steward.utils.ArgumentsParsedCallback;
+import com.github.guilhermesgb.steward.utils.ArgumentsParserMviActivity;
 import com.github.guilhermesgb.steward.utils.BasicPrototypeRenderer;
 import com.github.guilhermesgb.steward.utils.FontAwesomeSolid;
 import com.github.guilhermesgb.steward.utils.RendererBuilderFactory;
 import com.github.guilhermesgb.steward.utils.RendererItemView;
-import com.hannesdorfmann.mosby3.mvi.MviActivity;
 import com.joanzapata.iconify.IconDrawable;
 import com.pedrogomez.renderers.ListAdapteeCollection;
 import com.pedrogomez.renderers.RVRendererAdapter;
@@ -54,10 +57,14 @@ import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
+import static com.github.guilhermesgb.steward.utils.ArgumentsParser.WILL_NOT_DEFINE_ARGUMENTS;
+import static com.github.guilhermesgb.steward.utils.ArgumentsParser.WILL_NOT_DEFINE_RESOLVED_ARGUMENT_VALUES_ASSIGNER;
 
 public class HomeActivity
-        extends MviActivity<MakeReservationsView, MakeReservationsPresenter>
+        extends ArgumentsParserMviActivity<MakeReservationsView, MakeReservationsPresenter>
             implements MakeReservationsView {
+
+    public static final String BUNDLE_KEY_LAST_STATE = "LAST_STATE";
 
     private static final int RENDERER_ITEM_VIEW_CODE_CUSTOMER_SPACE = 0;
     private static final int RENDERER_ITEM_VIEW_CODE_CUSTOMER_LOADING = 1;
@@ -94,6 +101,16 @@ public class HomeActivity
     PublishSubject<FetchTablesAction> fetchTablesActions = PublishSubject.create();
     PublishSubject<ChooseTableAction> chooseTableActions = PublishSubject.create();
     PublishSubject<ConfirmReservationAction> confirmReservationActions = PublishSubject.create();
+
+    @Override
+    protected List<Argument> defineExpectedArguments() {
+        return WILL_NOT_DEFINE_ARGUMENTS;
+    }
+
+    @Override
+    protected ArgumentsParsedCallback defineResolvedArgumentValuesAssigner() {
+        return WILL_NOT_DEFINE_RESOLVED_ARGUMENT_VALUES_ASSIGNER;
+    }
 
     @Override
     protected void attachBaseContext(Context newBase) {

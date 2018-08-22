@@ -1,11 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@color/colorPrimary">
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/customerNameText"
+        android:layout_marginTop="-24dp"
+        android:background="@drawable/divider_primary_wrapper"/>
 
     <com.joanzapata.iconify.widget.IconTextView
         android:id="@+id/customerNameText"
@@ -26,17 +32,9 @@
         android:focusableInTouchMode="true"
         android:ellipsize="marquee"
         android:marqueeRepeatLimit="marquee_forever"
+        android:background="@color/colorPrimary"
         fontPath="fonts/Arya-Bold.ttf"
         tools:ignore="MissingPrefix"/>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginLeft="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginRight="16dp"
-        android:background="@color/colorTextPrimary"/>
 
     <include layout="@layout/touch_overlay"
         android:id="@+id/touchSurface"

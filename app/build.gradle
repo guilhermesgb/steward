@@ -5,7 +5,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 28
     defaultConfig {
         applicationId "com.github.guilhermesgb.steward"
         minSdkVersion 16
@@ -59,6 +59,7 @@ dependencies {
     implementation 'me.zhanghai.android.materialprogressbar:library:1.4.2'
     implementation 'uk.co.chrisjenx:calligraphy:2.3.0'
     implementation 'com.joanzapata.iconify:android-iconify-fontawesome:2.2.2'
+    implementation 'com.evernote:android-job:1.2.6'
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.hamcrest:hamcrest-core:1.3'

@@ -33,10 +33,10 @@ public class FetchTablesUseCase extends UseCase {
                     public List<Table> apply(Tables tables) {
                         return tables.getTables();
                     }
-                }).toObservable());
+                }).toObservable(), false);
 
         final Observable<FetchTablesViewState> fetchLocalTables = mapListOfTablesToStates
-            (action, getDatabase().tableDao().findAll().toObservable());
+            (action, getDatabase().tableDao().findAll().toObservable(), true);
 
         return Observable.combineLatest(fetchLocalTables, fetchRemoteTables.cache(),
             new BiFunction<FetchTablesViewState, FetchTablesViewState, FetchTablesViewState>() {
@@ -162,9 +162,9 @@ public class FetchTablesUseCase extends UseCase {
             });
     }
 
-
     private Observable<FetchTablesViewState> mapListOfTablesToStates(final FetchTablesAction action,
-                                                                     Observable<List<Table>> tables) {
+                                                                     Observable<List<Table>> tables,
+                                                                     final boolean localSource) {
         return tables.map(new Function<List<Table>, FetchTablesViewState>() {
             @Override
             public FetchTablesViewState apply(List<Table> tables) {
@@ -173,7 +173,9 @@ public class FetchTablesUseCase extends UseCase {
         }).onErrorReturn(new Function<Throwable, FetchTablesViewState>() {
             @Override
             public FetchTablesViewState apply(Throwable throwable) {
-                return new FetchTablesViewState.ErrorFetchingTables(action, throwable);
+                return localSource ? new FetchTablesViewState
+                    .SuccessFetchingTables(action, new LinkedList<Table>())
+                    : new FetchTablesViewState.ErrorFetchingTables(action, throwable);
             }
         });
     }

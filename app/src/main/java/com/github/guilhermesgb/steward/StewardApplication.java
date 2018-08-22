@@ -2,10 +2,17 @@ package com.github.guilhermesgb.steward;
 
 import android.app.Application;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 
+import com.evernote.android.job.Job;
+import com.evernote.android.job.JobCreator;
+import com.evernote.android.job.JobManager;
+import com.evernote.android.job.JobRequest;
+import com.github.guilhermesgb.steward.database.DatabaseResource;
 import com.github.guilhermesgb.steward.utils.FontAwesomeBrands;
 import com.github.guilhermesgb.steward.utils.FontAwesomeRegular;
 import com.github.guilhermesgb.steward.utils.FontAwesomeSolid;
+import com.github.guilhermesgb.steward.worker.ReservationsCleanupWorker;
 import com.joanzapata.iconify.Icon;
 import com.joanzapata.iconify.Iconify;
 import com.joanzapata.iconify.fonts.FontAwesomeModule;
@@ -13,6 +20,7 @@ import com.joanzapata.iconify.fonts.FontAwesomeModule;
 import net.danlew.android.joda.JodaTimeAndroid;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Scheduler;
 import io.reactivex.android.plugins.RxAndroidPlugins;
@@ -84,6 +92,25 @@ public class StewardApplication extends Application {
         CalligraphyConfig.initDefault(new CalligraphyConfig.Builder()
             .setDefaultFontPath("fonts/Arya-Regular.ttf")
             .build());
+        JobManager.create(this).addJobCreator(new JobCreator() {
+            @Override
+            public Job create(@NonNull String tag) {
+                switch (tag) {
+                    case ReservationsCleanupWorker.TAG:
+                        return new ReservationsCleanupWorker
+                            (DatabaseResource.getInstance
+                                (getApplicationContext()));
+                    default:
+                        return null;
+                }
+            }
+        });
+        new JobRequest.Builder(ReservationsCleanupWorker.TAG)
+            .setPeriodic(TimeUnit.MINUTES.toMillis(15), //Minimum is 15 minutes
+                TimeUnit.MINUTES.toMillis(10))         //but we set the flexMs to 10 min
+            .setUpdateCurrent(true)
+            .build()                                           //so that it may try running the required
+            .schedule();                                      //reservations cleanup work around this time.
     }
 
 }

@@ -26,10 +26,10 @@ public class FetchCustomersUseCase extends UseCase {
 
     public Observable<FetchCustomersViewState> doFetchCustomers(final FetchCustomersAction action) {
         Observable<FetchCustomersViewState> fetchRemoteCustomers
-            = mapListOfCustomersToStates(action, getApi().fetchCustomers().toObservable());
+            = mapListOfCustomersToStates(action, getApi().fetchCustomers().toObservable(), false);
 
         final Observable<FetchCustomersViewState> fetchLocalCustomers = mapListOfCustomersToStates
-            (action, getDatabase().customerDao().findAll().toObservable());
+            (action, getDatabase().customerDao().findAll().toObservable(), true);
 
         return Observable.combineLatest(fetchLocalCustomers, fetchRemoteCustomers.cache(),
             new BiFunction<FetchCustomersViewState, FetchCustomersViewState, FetchCustomersViewState>() {
@@ -136,7 +136,8 @@ public class FetchCustomersUseCase extends UseCase {
     }
 
     private Observable<FetchCustomersViewState> mapListOfCustomersToStates(final FetchCustomersAction action,
-                                                                           Observable<List<Customer>> customers) {
+                                                                           Observable<List<Customer>> customers,
+                                                                           final boolean localSource) {
         return customers.map(new Function<List<Customer>, FetchCustomersViewState>() {
             @Override
             public FetchCustomersViewState apply(List<Customer> customers) {
@@ -145,7 +146,9 @@ public class FetchCustomersUseCase extends UseCase {
         }).onErrorReturn(new Function<Throwable, FetchCustomersViewState>() {
             @Override
             public FetchCustomersViewState apply(Throwable throwable) {
-                return new FetchCustomersViewState.ErrorFetchingCustomers(action, throwable);
+                return localSource ? new FetchCustomersViewState
+                    .SuccessFetchingCustomers(action, new LinkedList<Customer>())
+                    : new FetchCustomersViewState.ErrorFetchingCustomers(action, throwable);
             }
         });
     }
