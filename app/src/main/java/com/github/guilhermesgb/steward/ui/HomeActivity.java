@@ -26,12 +26,14 @@ import com.github.guilhermesgb.steward.mvi.reservation.intent.ChooseCustomerActi
 import com.github.guilhermesgb.steward.mvi.reservation.intent.ChooseTableAction;
 import com.github.guilhermesgb.steward.mvi.reservation.intent.ConfirmReservationAction;
 import com.github.guilhermesgb.steward.mvi.reservation.model.MakeReservationsViewState;
+import com.github.guilhermesgb.steward.mvi.reservation.model.ReservationException;
 import com.github.guilhermesgb.steward.mvi.reservation.presenter.MakeReservationsPresenter;
 import com.github.guilhermesgb.steward.mvi.reservation.view.MakeReservationsView;
 import com.github.guilhermesgb.steward.mvi.table.intent.FetchTablesAction;
 import com.github.guilhermesgb.steward.mvi.table.model.FetchTablesViewState;
 import com.github.guilhermesgb.steward.mvi.table.schema.Table;
 import com.github.guilhermesgb.steward.utils.Argument;
+import com.github.guilhermesgb.steward.utils.ArgumentType;
 import com.github.guilhermesgb.steward.utils.ArgumentsParsedCallback;
 import com.github.guilhermesgb.steward.utils.ArgumentsParserMviActivity;
 import com.github.guilhermesgb.steward.utils.BasicPrototypeRenderer;
@@ -56,8 +58,6 @@ import uk.co.chrisjenx.calligraphy.CalligraphyContextWrapper;
 
 import static android.view.View.GONE;
 import static android.view.View.VISIBLE;
-import static com.github.guilhermesgb.steward.utils.ArgumentsParser.WILL_NOT_DEFINE_ARGUMENTS;
-import static com.github.guilhermesgb.steward.utils.ArgumentsParser.WILL_NOT_DEFINE_RESOLVED_ARGUMENT_VALUES_ASSIGNER;
 
 public class HomeActivity
         extends ArgumentsParserMviActivity<MakeReservationsView, MakeReservationsPresenter>
@@ -93,7 +93,7 @@ public class HomeActivity
     private RVRendererAdapter<RendererItemView> tablesItemViewsAdapter;
     private ListAdapteeCollection<RendererItemView> tablesItemViews = new ListAdapteeCollection<>();
 
-    private MakeReservationsViewState lastRenderedState;
+    private MakeReservationsViewState lastStateWithPrecedence;
 
     PublishSubject<FetchCustomersAction> fetchCustomersActions = PublishSubject.create();
     PublishSubject<ChooseCustomerAction> chooseCustomerActions = PublishSubject.create();
@@ -103,12 +103,72 @@ public class HomeActivity
 
     @Override
     protected List<Argument> defineExpectedArguments() {
-        return WILL_NOT_DEFINE_ARGUMENTS;
+        List<Argument> expectedArguments = new LinkedList<>();
+        expectedArguments.add(new Argument(
+            BUNDLE_KEY_LAST_STATE,
+            ArgumentType.PARCELABLE
+        ));
+        return expectedArguments;
     }
 
     @Override
     protected ArgumentsParsedCallback defineResolvedArgumentValuesAssigner() {
-        return WILL_NOT_DEFINE_RESOLVED_ARGUMENT_VALUES_ASSIGNER;
+        return new ArgumentsParsedCallback() {
+            @Override
+            public void doUponArgumentParsingCompleted(Object... values) {
+                LastStateWithPrecedence lastStateWithPrecedenceParcelable
+                    = (LastStateWithPrecedence) values[0];
+                if (lastStateWithPrecedenceParcelable != null) {
+                    int precedenceValue = lastStateWithPrecedenceParcelable.getPrecedenceValue();
+                    List<Customer> customers = lastStateWithPrecedenceParcelable.getCustomers();
+                    if (customers == null) {
+                        return;
+                    }
+                    Customer chosenCustomer = lastStateWithPrecedenceParcelable.getChosenCustomer();
+                    List<Table> tables = lastStateWithPrecedenceParcelable.getTables();
+                    if (tables == null && precedenceValue >= 1) {
+                        return;
+                    }
+                    Table chosenTable = lastStateWithPrecedenceParcelable.getChosenTable();
+                    ReservationException exception = lastStateWithPrecedenceParcelable.getException();
+                    FetchCustomersViewState.SuccessFetchingCustomers firstSubstate
+                        = new FetchCustomersViewState.SuccessFetchingCustomers
+                            (new FetchCustomersAction(), customers);
+                    FetchTablesViewState.SuccessFetchingTables secondSubstate
+                        = new FetchTablesViewState.SuccessFetchingTables
+                            (new FetchTablesAction(), tables);
+                    MakeReservationsViewState.CustomerChosen thirdSubstate = new MakeReservationsViewState
+                        .CustomerChosen(firstSubstate, chosenCustomer, secondSubstate);
+                    MakeReservationsViewState.TableChosen fourthSubstate = new MakeReservationsViewState
+                        .TableChosen(thirdSubstate, secondSubstate, chosenTable);
+                    switch (precedenceValue) {
+                        default:
+                            break;
+                        case 0:
+                            lastStateWithPrecedence = new MakeReservationsViewState.Initial(firstSubstate);
+                            break;
+                        case 1:
+                            lastStateWithPrecedence = thirdSubstate;
+                            break;
+                        case 2:
+                            lastStateWithPrecedence = fourthSubstate;
+                            break;
+                        case 3:
+                            lastStateWithPrecedence = new MakeReservationsViewState
+                                .MakingReservation(fourthSubstate);
+                            break;
+                        case 4:
+                            lastStateWithPrecedence = new MakeReservationsViewState
+                                .SuccessMakingReservation(fourthSubstate);
+                            break;
+                        case 5:
+                            lastStateWithPrecedence = new MakeReservationsViewState
+                                .ErrorMakingReservation(fourthSubstate, exception);
+                            break;
+                    }
+                }
+            }
+        };
     }
 
     @Override
@@ -193,13 +253,112 @@ public class HomeActivity
                 }
                 customersSearchView.setQuery(customer.getFirstName()
                     + " " + customer.getLastName(), false);
-                lastRenderedState = null;
+                lastStateWithPrecedence = null;
                 chooseCustomerActions.onNext(new ChooseCustomerAction
                     (new FetchCustomersViewState.SuccessFetchingCustomers
                         (new FetchCustomersAction(), cachedCustomers),
                             customer));
             }
         });
+    }
+
+    @Override
+    public void onSaveInstanceState(final Bundle outState) {
+        if (lastStateWithPrecedence != null) {
+            lastStateWithPrecedence.continued(new Consumer<MakeReservationsViewState.Initial>() {
+                @Override
+                public void accept(MakeReservationsViewState.Initial initial) {
+                    if (initial.getSubstate() instanceof
+                            FetchCustomersViewState.SuccessFetchingCustomers) {
+                        FetchCustomersViewState.SuccessFetchingCustomers firstSubstate
+                            = (FetchCustomersViewState.SuccessFetchingCustomers) initial.getSubstate();
+                        outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                            new LastStateWithPrecedence(
+                                initial.getPrecedenceValue(),
+                                firstSubstate.getCustomers(),
+                                null,
+                                null,
+                                null,
+                                null)
+                            );
+                    }
+                }
+            }, new Consumer<MakeReservationsViewState.CustomerChosen>() {
+                @Override
+                public void accept(MakeReservationsViewState.CustomerChosen customerChosen) {
+                    List<Table> tables = null;
+                    if (customerChosen.getSecondSubstate() instanceof
+                            FetchTablesViewState.SuccessFetchingTables) {
+                        FetchTablesViewState.SuccessFetchingTables secondSubstate
+                            = (FetchTablesViewState.SuccessFetchingTables)
+                                customerChosen.getSecondSubstate();
+                        tables = secondSubstate.getTables();
+                    }
+                    outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                        new LastStateWithPrecedence(
+                            customerChosen.getPrecedenceValue(),
+                            customerChosen.getFirstSubstate().getCustomers(),
+                            tables,
+                            customerChosen.getChosenCustomer(),
+                            null,
+                            null
+                        ));
+                }
+            }, new Consumer<MakeReservationsViewState.TableChosen>() {
+                @Override
+                public void accept(MakeReservationsViewState.TableChosen tableChosen) {
+                    outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                        new LastStateWithPrecedence(
+                            tableChosen.getPrecedenceValue(),
+                            tableChosen.getFirstSubstate().getFirstSubstate().getCustomers(),
+                            tableChosen.getSecondSubstate().getTables(),
+                            tableChosen.getFirstSubstate().getChosenCustomer(),
+                            tableChosen.getChosenTable(),
+                            null
+                        ));
+                }
+            }, new Consumer<MakeReservationsViewState.MakingReservation>() {
+                @Override
+                public void accept(MakeReservationsViewState.MakingReservation loading) {
+                    outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                        new LastStateWithPrecedence(
+                            loading.getPrecedenceValue(),
+                            loading.getFinalSubstate().getFirstSubstate().getFirstSubstate().getCustomers(),
+                            loading.getFinalSubstate().getSecondSubstate().getTables(),
+                            loading.getFinalSubstate().getFirstSubstate().getChosenCustomer(),
+                            loading.getFinalSubstate().getChosenTable(),
+                            null
+                        ));
+                }
+            }, new Consumer<MakeReservationsViewState.SuccessMakingReservation>() {
+                @Override
+                public void accept(MakeReservationsViewState.SuccessMakingReservation success) {
+                    outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                        new LastStateWithPrecedence(
+                            success.getPrecedenceValue(),
+                            success.getFinalSubstate().getFirstSubstate().getFirstSubstate().getCustomers(),
+                            success.getFinalSubstate().getSecondSubstate().getTables(),
+                            success.getFinalSubstate().getFirstSubstate().getChosenCustomer(),
+                            success.getFinalSubstate().getChosenTable(),
+                            null
+                        ));
+                }
+            }, new Consumer<MakeReservationsViewState.ErrorMakingReservation>() {
+                @Override
+                public void accept(MakeReservationsViewState.ErrorMakingReservation error) {
+                    outState.putParcelable(BUNDLE_KEY_LAST_STATE,
+                        new LastStateWithPrecedence(
+                            error.getPrecedenceValue(),
+                            error.getFinalSubstate().getFirstSubstate().getFirstSubstate().getCustomers(),
+                            error.getFinalSubstate().getSecondSubstate().getTables(),
+                            error.getFinalSubstate().getFirstSubstate().getChosenCustomer(),
+                            error.getFinalSubstate().getChosenTable(),
+                            error.getException()
+                        ));
+                }
+            });
+        }
+        super.onSaveInstanceState(outState);
     }
 
     @NonNull
@@ -374,10 +533,10 @@ public class HomeActivity
     }
 
     private void updateLastRenderedState(MakeReservationsViewState state) {
-        if (lastRenderedState == null) {
-            lastRenderedState = state;
-        } else if (state.getPrecedenceValue() >= lastRenderedState.getPrecedenceValue()) {
-            lastRenderedState = state;
+        if (lastStateWithPrecedence == null) {
+            lastStateWithPrecedence = state;
+        } else if (state.getPrecedenceValue() >= lastStateWithPrecedence.getPrecedenceValue()) {
+            lastStateWithPrecedence = state;
         }
     }
 
@@ -412,8 +571,8 @@ public class HomeActivity
             );
         }
         customersSearchItemViewsAdapter.notifyDataSetChanged();
-        if (lastRenderedState != null && chosenCustomer == null) {
-            lastRenderedState.continued(null, new Consumer<MakeReservationsViewState.CustomerChosen>() {
+        if (lastStateWithPrecedence != null && chosenCustomer == null) {
+            lastStateWithPrecedence.continued(null, new Consumer<MakeReservationsViewState.CustomerChosen>() {
                 @Override
                 public void accept(MakeReservationsViewState.CustomerChosen customerChosen) {
                     renderCustomers(substate, customerChosen.getChosenCustomer());
@@ -442,7 +601,7 @@ public class HomeActivity
                         .getFirstSubstate().getChosenCustomer());
                 }
             });
-            if (!(lastRenderedState instanceof MakeReservationsViewState.Initial)) {
+            if (!(lastStateWithPrecedence instanceof MakeReservationsViewState.Initial)) {
                 return;
             }
         }
@@ -474,7 +633,7 @@ public class HomeActivity
                                 (new ChooseCustomerAction
                                     (substate, customer));
                         } else {
-                            lastRenderedState = null;
+                            lastStateWithPrecedence = null;
                             fetchCustomersActions.onNext
                                 (new FetchCustomersAction());
                         }
@@ -524,8 +683,8 @@ public class HomeActivity
                               final MakeReservationsViewState.TableChosen finalState) {
         final Table chosenTable = finalState == null
             ? null : finalState.getChosenTable();
-        if (lastRenderedState != null && chosenTable == null) {
-            lastRenderedState.continued(
+        if (lastStateWithPrecedence != null && chosenTable == null) {
+            lastStateWithPrecedence.continued(
                 null,
                 null,
                 new Consumer<MakeReservationsViewState.TableChosen>() {
@@ -550,8 +709,8 @@ public class HomeActivity
                     }
                 }
             );
-            if (!(lastRenderedState instanceof MakeReservationsViewState.Initial
-                    || lastRenderedState instanceof MakeReservationsViewState.CustomerChosen)) {
+            if (!(lastStateWithPrecedence instanceof MakeReservationsViewState.Initial
+                    || lastStateWithPrecedence instanceof MakeReservationsViewState.CustomerChosen)) {
                 return;
             }
         }
@@ -571,7 +730,7 @@ public class HomeActivity
                             chooseTableActions.onNext(new ChooseTableAction
                                 (previousState, substate, table));
                         } else {
-                            lastRenderedState = null;
+                            lastStateWithPrecedence = null;
                             fetchTablesActions.onNext
                                 (new FetchTablesAction());
                         }
