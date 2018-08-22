@@ -69,5 +69,7 @@ dependencies {
     testImplementation 'org.wso2.orbit.joda-time:joda-time:2.9.4.wso2v1'
 
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test:rules:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-contrib:3.0.2'
 }
